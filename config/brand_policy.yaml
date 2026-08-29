@@ -1,0 +1,15 @@
+# Brand-owned policy (SPEC §4, ADR 0007).
+#
+# This is the ONLY autonomy configuration a brand controls. A conservative
+# customer can cap how far the agent is ever allowed to climb, regardless of how
+# much performance evidence it accumulates. A brand may lower the ceiling but can
+# NEVER raise thresholds, widen segment eligibility, or relax constraints — the
+# safety floor is the vendor's and is non-negotiable.
+#
+# The loader rejects any key other than `max_allowed_tier`, so a brand cannot
+# smuggle threshold overrides into this file.
+
+# Cap on the highest tier this brand permits: 0 (ASSIST), 1 (BOUNDED), or
+# 2 (SUPERVISED). The agent may earn its way up to — but never past — this tier.
+# Default 2 = allow the full ladder the framework supports.
+max_allowed_tier: 2

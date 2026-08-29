@@ -1,0 +1,42 @@
+# Vendor-owned autonomy configuration (SPEC §4).
+#
+# THIS FILE BELONGS TO THE FRAMEWORK VENDOR. A brand may NOT edit it: it may not
+# lower promotion thresholds or alter constraints. A brand's only knob is
+# `max_allowed_tier` in config/brand_policy.yaml (ADR 0007).
+#
+# Note on what is here vs. hard-coded: the numeric knobs live here so they are
+# auditable in one place, but the true safety FLOOR — which segments are never
+# eligible for autonomous send, and which segments each tier may send to — is
+# hard-coded in Python (autonomy_ladder.domain / autonomy_ladder.autonomy.tiers)
+# and cannot be widened by any config (SPEC §4: "Hard-coded, not configurable").
+
+# Statistical promotion gates (Wilson score lower bound; SPEC §4, ADR 0004).
+promotion:
+  # 0 (ASSIST) -> 1 (BOUNDED)
+  "0->1":
+    window: 50 # evaluated over the last 50 runs of that campaign type
+    min_runs: 25 # raised from spec's 20; see docs/open-questions.md OQ-2
+    wilson_lower_bound_min: 0.85
+  # 1 (BOUNDED) -> 2 (SUPERVISED)
+  "1->2":
+    window: 100
+    min_runs: 50
+    wilson_lower_bound_min: 0.92
+
+# Hard constraints on autonomous sends at any tier > 0 (SPEC §4).
+constraints:
+  max_discount_pct: 25 # autonomous campaigns above 25% off route to human review
+  max_autonomous_sends_per_type_per_24h: 3 # rate limit against runaway loops
+
+# Post-send deliverability triggers (SPEC §4). A breach on ANY is critical and
+# demotes the campaign type to Tier 0 with probation. Industry-standard levels.
+deliverability_triggers:
+  spam_complaint_rate_max: 0.0008 # 0.08% (Google reputation-damage threshold)
+  unsubscribe_rate_max: 0.003 # 0.3% per send
+  bounce_rate_max: 0.005 # 0.5% per send
+
+# Probation & recovery (SPEC §4).
+probation:
+  # After a passing probation challenge, this many runs must accrue at the
+  # restored tier before promotion is eligible again.
+  cooldown_runs: 20
