@@ -1,0 +1,32 @@
+brand: Northbay Supply
+voice:
+- Write plainly and specifically; name the feature and what it does.
+- Lead with the customer's trip, not the product's ego.
+- Prefer concrete numbers (weight, capacity, ratings) over adjectives.
+- Respect the reader's experience; assume they know the outdoors.
+- Be honest about limits — say what the gear is not built for.
+- One clear call to action per message.
+tone_descriptors:
+- grounded
+- practical
+- warm
+- understated
+- trail-tested
+- unpretentious
+prohibited_terms:
+- guaranteed
+- miracle
+- risk-free
+- best ever
+- cure
+- 100% safe
+- unbreakable
+- lifetime warranty
+- revolutionary
+- world's best
+- bulletproof
+required_disclaimers:
+- Free shipping applies to U.S. orders over $75; exclusions apply.
+- Returns accepted within 30 days on unused gear with original tags.
+- Prices shown in USD and subject to change without notice.
+- Weather and durability ratings are lab-tested estimates, not guarantees of performance in the field.

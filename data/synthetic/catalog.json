@@ -1,0 +1,1089 @@
+[
+  {
+    "id": "NB-0001",
+    "name": "Northbay Basecamp Dome",
+    "category": "tents",
+    "price": 142.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 2800,
+      "capacity_persons": 2,
+      "waterproof_rating_mm": 5000,
+      "season_rating": 3,
+      "packed_length_cm": 47,
+      "material": "ripstop nylon"
+    },
+    "stock": 290,
+    "claims": [
+      {
+        "claim": "Built for 3-season use.",
+        "basis": "season_rating=3"
+      },
+      {
+        "claim": "Holds up in heavy rain with a 5000mm waterproof rating.",
+        "basis": "waterproof_rating_mm=5000"
+      }
+    ]
+  },
+  {
+    "id": "NB-0002",
+    "name": "Northbay Trailhead Trekking Pack",
+    "category": "backpacks",
+    "price": 305.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 850,
+      "capacity_liters": 55,
+      "waterproof_rating_mm": 0,
+      "frame_type": "internal frame",
+      "material": "Cordura-style fabric"
+    },
+    "stock": 127,
+    "claims": [
+      {
+        "claim": "Lightweight build at just 0.85 kg.",
+        "basis": "weight_grams=850"
+      },
+      {
+        "claim": "Made from durable Cordura-style fabric.",
+        "basis": "material=Cordura-style fabric"
+      },
+      {
+        "claim": "Carries up to 55 liters of gear.",
+        "basis": "capacity_liters=55"
+      }
+    ]
+  },
+  {
+    "id": "NB-0003",
+    "name": "Northbay Coldsnap Sleeping Bag",
+    "category": "insulation",
+    "price": 398.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 825,
+      "fill_power": 850,
+      "temperature_rating_c": -1,
+      "packable": false,
+      "material": "ripstop nylon"
+    },
+    "stock": 6,
+    "claims": [
+      {
+        "claim": "Made from durable ripstop nylon.",
+        "basis": "material=ripstop nylon"
+      },
+      {
+        "claim": "Lightweight build at just 0.82 kg.",
+        "basis": "weight_grams=825"
+      },
+      {
+        "claim": "Certified for high-altitude expeditions above 6,000 meters.",
+        "basis": "UNGROUNDED"
+      }
+    ]
+  },
+  {
+    "id": "NB-0004",
+    "name": "Northbay Muddler Hiking Boot",
+    "category": "footwear",
+    "price": 158.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 425,
+      "waterproof_rating_mm": 16000,
+      "sole_type": "lugged rubber",
+      "material": "synthetic mesh"
+    },
+    "stock": 27,
+    "claims": [
+      {
+        "claim": "Made from durable synthetic mesh.",
+        "basis": "material=synthetic mesh"
+      },
+      {
+        "claim": "Holds up in heavy rain with a 16000mm waterproof rating.",
+        "basis": "waterproof_rating_mm=16000"
+      },
+      {
+        "claim": "Blocks 100% of UV radiation.",
+        "basis": "UNGROUNDED"
+      }
+    ]
+  },
+  {
+    "id": "NB-0005",
+    "name": "Northbay Mess Kit Kettle",
+    "category": "cookware",
+    "price": 83.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 760,
+      "capacity_liters": 0.75,
+      "fuel_type": "canister gas",
+      "material": "hard-anodized steel"
+    },
+    "stock": 471,
+    "claims": [
+      {
+        "claim": "Carries up to 0.75 liters of gear.",
+        "basis": "capacity_liters=0.75"
+      },
+      {
+        "claim": "Lightweight build at just 0.76 kg.",
+        "basis": "weight_grams=760"
+      },
+      {
+        "claim": "Made from durable hard-anodized steel.",
+        "basis": "material=hard-anodized steel"
+      },
+      {
+        "claim": "Trusted by professional mountaineering guides worldwide.",
+        "basis": "UNGROUNDED"
+      }
+    ]
+  },
+  {
+    "id": "NB-0006",
+    "name": "Northbay Nightwatch Camp Lantern",
+    "category": "lighting",
+    "price": 95.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 265,
+      "lumens": 400,
+      "battery_life_hours": 8,
+      "waterproof_rating_ipx": 8,
+      "rechargeable": true,
+      "material": "impact-resistant plastic"
+    },
+    "stock": 214,
+    "claims": [
+      {
+        "claim": "Made from durable impact-resistant plastic.",
+        "basis": "material=impact-resistant plastic"
+      },
+      {
+        "claim": "Lightweight build at just 0.27 kg.",
+        "basis": "weight_grams=265"
+      },
+      {
+        "claim": "Weather-sealed to IPX8 against rain and splashes.",
+        "basis": "waterproof_rating_ipx=8"
+      }
+    ]
+  },
+  {
+    "id": "NB-0007",
+    "name": "Northbay Meridian GPS Unit",
+    "category": "navigation",
+    "price": 104.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 110,
+      "battery_life_hours": 40,
+      "water_resistant": true,
+      "declination_adjustable": true,
+      "material": "reinforced polymer"
+    },
+    "stock": 483,
+    "claims": [
+      {
+        "claim": "Runs up to 40 hours per charge.",
+        "basis": "battery_life_hours=40"
+      },
+      {
+        "claim": "Lightweight build at just 0.11 kg.",
+        "basis": "weight_grams=110"
+      }
+    ]
+  },
+  {
+    "id": "NB-0008",
+    "name": "Northbay Cirque Backpacking Tent",
+    "category": "tents",
+    "price": 396.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 2250,
+      "capacity_persons": 2,
+      "waterproof_rating_mm": 1500,
+      "season_rating": 3,
+      "packed_length_cm": 49,
+      "material": "polyester taffeta"
+    },
+    "stock": 104,
+    "claims": [
+      {
+        "claim": "Built for 3-season use.",
+        "basis": "season_rating=3"
+      },
+      {
+        "claim": "Made from durable polyester taffeta.",
+        "basis": "material=polyester taffeta"
+      }
+    ]
+  },
+  {
+    "id": "NB-0009",
+    "name": "Northbay Trailhead Trekking Pack",
+    "category": "backpacks",
+    "price": 120.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1600,
+      "capacity_liters": 32,
+      "waterproof_rating_mm": 1500,
+      "frame_type": "internal frame",
+      "material": "recycled polyester"
+    },
+    "stock": 82,
+    "claims": [
+      {
+        "claim": "Made from durable recycled polyester.",
+        "basis": "material=recycled polyester"
+      },
+      {
+        "claim": "Carries up to 32 liters of gear.",
+        "basis": "capacity_liters=32"
+      }
+    ]
+  },
+  {
+    "id": "NB-0010",
+    "name": "Northbay Meadowlark Insulated Vest",
+    "category": "insulation",
+    "price": 276.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1450,
+      "fill_power": 700,
+      "temperature_rating_c": 4,
+      "packable": true,
+      "material": "responsibly sourced down"
+    },
+    "stock": 242,
+    "claims": [
+      {
+        "claim": "Rated down to 4°C.",
+        "basis": "temperature_rating_c=4"
+      },
+      {
+        "claim": "Lofts with 700-fill-power down for warmth-to-weight.",
+        "basis": "fill_power=700"
+      }
+    ]
+  },
+  {
+    "id": "NB-0011",
+    "name": "Northbay Creekbed Winter Boot",
+    "category": "footwear",
+    "price": 252.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 575,
+      "waterproof_rating_mm": 10000,
+      "sole_type": "lugged rubber",
+      "material": "nubuck leather"
+    },
+    "stock": 30,
+    "claims": [
+      {
+        "claim": "Holds up in heavy rain with a 10000mm waterproof rating.",
+        "basis": "waterproof_rating_mm=10000"
+      },
+      {
+        "claim": "Made from durable nubuck leather.",
+        "basis": "material=nubuck leather"
+      },
+      {
+        "claim": "Lightweight build at just 0.57 kg.",
+        "basis": "weight_grams=575"
+      }
+    ]
+  },
+  {
+    "id": "NB-0012",
+    "name": "Northbay Kettleworks Camp Stove",
+    "category": "cookware",
+    "price": 107.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 340,
+      "capacity_liters": 1.0,
+      "fuel_type": "canister gas",
+      "material": "hard-anodized steel"
+    },
+    "stock": 189,
+    "claims": [
+      {
+        "claim": "Lightweight build at just 0.34 kg.",
+        "basis": "weight_grams=340"
+      },
+      {
+        "claim": "Made from durable hard-anodized steel.",
+        "basis": "material=hard-anodized steel"
+      }
+    ]
+  },
+  {
+    "id": "NB-0013",
+    "name": "Northbay Lumen Camp Lantern",
+    "category": "lighting",
+    "price": 42.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 235,
+      "lumens": 400,
+      "battery_life_hours": 100,
+      "waterproof_rating_ipx": 8,
+      "rechargeable": true,
+      "material": "ABS polymer"
+    },
+    "stock": 238,
+    "claims": [
+      {
+        "claim": "Lightweight build at just 0.23 kg.",
+        "basis": "weight_grams=235"
+      },
+      {
+        "claim": "Runs up to 100 hours per charge.",
+        "basis": "battery_life_hours=100"
+      },
+      {
+        "claim": "Throws 400 lumens on the high setting.",
+        "basis": "lumens=400"
+      }
+    ]
+  },
+  {
+    "id": "NB-0014",
+    "name": "Northbay Truenorth Altimeter Watch",
+    "category": "navigation",
+    "price": 30.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 85,
+      "battery_life_hours": 200,
+      "water_resistant": true,
+      "declination_adjustable": true,
+      "material": "reinforced polymer"
+    },
+    "stock": 194,
+    "claims": [
+      {
+        "claim": "Made from durable reinforced polymer.",
+        "basis": "material=reinforced polymer"
+      },
+      {
+        "claim": "Lightweight build at just 0.09 kg.",
+        "basis": "weight_grams=85"
+      },
+      {
+        "claim": "Runs up to 200 hours per charge.",
+        "basis": "battery_life_hours=200"
+      }
+    ]
+  },
+  {
+    "id": "NB-0015",
+    "name": "Northbay Saddle Backpacking Tent",
+    "category": "tents",
+    "price": 497.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 2450,
+      "capacity_persons": 4,
+      "waterproof_rating_mm": 1500,
+      "season_rating": 3,
+      "packed_length_cm": 35,
+      "material": "polyester taffeta"
+    },
+    "stock": 337,
+    "claims": [
+      {
+        "claim": "Made from durable polyester taffeta.",
+        "basis": "material=polyester taffeta"
+      },
+      {
+        "claim": "Built for 3-season use.",
+        "basis": "season_rating=3"
+      }
+    ]
+  },
+  {
+    "id": "NB-0016",
+    "name": "Northbay Switchback Trekking Pack",
+    "category": "backpacks",
+    "price": 250.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1250,
+      "capacity_liters": 40,
+      "waterproof_rating_mm": 0,
+      "frame_type": "external frame",
+      "material": "ripstop nylon"
+    },
+    "stock": 256,
+    "claims": [
+      {
+        "claim": "Made from durable ripstop nylon.",
+        "basis": "material=ripstop nylon"
+      },
+      {
+        "claim": "Carries up to 40 liters of gear.",
+        "basis": "capacity_liters=40"
+      }
+    ]
+  },
+  {
+    "id": "NB-0017",
+    "name": "Northbay Downdraft Sleeping Bag",
+    "category": "insulation",
+    "price": 325.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1275,
+      "fill_power": 850,
+      "temperature_rating_c": 4,
+      "packable": false,
+      "material": "responsibly sourced down"
+    },
+    "stock": 194,
+    "claims": [
+      {
+        "claim": "Made from durable responsibly sourced down.",
+        "basis": "material=responsibly sourced down"
+      },
+      {
+        "claim": "Rated down to 4°C.",
+        "basis": "temperature_rating_c=4"
+      },
+      {
+        "claim": "Lofts with 850-fill-power down for warmth-to-weight.",
+        "basis": "fill_power=850"
+      }
+    ]
+  },
+  {
+    "id": "NB-0018",
+    "name": "Northbay Scramble Winter Boot",
+    "category": "footwear",
+    "price": 243.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 625,
+      "waterproof_rating_mm": 0,
+      "sole_type": "multi-terrain",
+      "material": "waterproof suede"
+    },
+    "stock": 444,
+    "claims": [
+      {
+        "claim": "Made from durable waterproof suede.",
+        "basis": "material=waterproof suede"
+      },
+      {
+        "claim": "Lightweight build at just 0.62 kg.",
+        "basis": "weight_grams=625"
+      }
+    ]
+  },
+  {
+    "id": "NB-0019",
+    "name": "Northbay Kettleworks Camp Stove",
+    "category": "cookware",
+    "price": 83.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 260,
+      "capacity_liters": 0.75,
+      "fuel_type": "canister gas",
+      "material": "anodized aluminum"
+    },
+    "stock": 285,
+    "claims": [
+      {
+        "claim": "Made from durable anodized aluminum.",
+        "basis": "material=anodized aluminum"
+      },
+      {
+        "claim": "Carries up to 0.75 liters of gear.",
+        "basis": "capacity_liters=0.75"
+      }
+    ]
+  },
+  {
+    "id": "NB-0020",
+    "name": "Northbay Lumen Headlamp",
+    "category": "lighting",
+    "price": 84.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 115,
+      "lumens": 1000,
+      "battery_life_hours": 60,
+      "waterproof_rating_ipx": 7,
+      "rechargeable": true,
+      "material": "aluminum housing"
+    },
+    "stock": 144,
+    "claims": [
+      {
+        "claim": "Runs up to 60 hours per charge.",
+        "basis": "battery_life_hours=60"
+      },
+      {
+        "claim": "Weather-sealed to IPX7 against rain and splashes.",
+        "basis": "waterproof_rating_ipx=7"
+      }
+    ]
+  },
+  {
+    "id": "NB-0021",
+    "name": "Northbay Truenorth Route Beacon",
+    "category": "navigation",
+    "price": 144.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 90,
+      "battery_life_hours": 40,
+      "water_resistant": true,
+      "declination_adjustable": false,
+      "material": "glass-filled nylon"
+    },
+    "stock": 247,
+    "claims": [
+      {
+        "claim": "Made from durable glass-filled nylon.",
+        "basis": "material=glass-filled nylon"
+      },
+      {
+        "claim": "Runs up to 40 hours per charge.",
+        "basis": "battery_life_hours=40"
+      },
+      {
+        "claim": "Lightweight build at just 0.09 kg.",
+        "basis": "weight_grams=90"
+      }
+    ]
+  },
+  {
+    "id": "NB-0022",
+    "name": "Northbay Cirque Tarp Shelter",
+    "category": "tents",
+    "price": 277.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1450,
+      "capacity_persons": 1,
+      "waterproof_rating_mm": 5000,
+      "season_rating": 3,
+      "packed_length_cm": 52,
+      "material": "ripstop nylon"
+    },
+    "stock": 297,
+    "claims": [
+      {
+        "claim": "Built for 3-season use.",
+        "basis": "season_rating=3"
+      },
+      {
+        "claim": "Sleeps 1 comfortably.",
+        "basis": "capacity_persons=1"
+      },
+      {
+        "claim": "Holds up in heavy rain with a 5000mm waterproof rating.",
+        "basis": "waterproof_rating_mm=5000"
+      },
+      {
+        "claim": "Tested to survive a 10-meter drop onto granite.",
+        "basis": "UNGROUNDED"
+      }
+    ]
+  },
+  {
+    "id": "NB-0023",
+    "name": "Northbay Longhaul Daypack",
+    "category": "backpacks",
+    "price": 226.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1400,
+      "capacity_liters": 45,
+      "waterproof_rating_mm": 0,
+      "frame_type": "internal frame",
+      "material": "Cordura-style fabric"
+    },
+    "stock": 244,
+    "claims": [
+      {
+        "claim": "Carries up to 45 liters of gear.",
+        "basis": "capacity_liters=45"
+      },
+      {
+        "claim": "Made from durable Cordura-style fabric.",
+        "basis": "material=Cordura-style fabric"
+      }
+    ]
+  },
+  {
+    "id": "NB-0024",
+    "name": "Northbay Meadowlark Down Jacket",
+    "category": "insulation",
+    "price": 333.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1375,
+      "fill_power": 550,
+      "temperature_rating_c": -9,
+      "packable": false,
+      "material": "ripstop nylon"
+    },
+    "stock": 242,
+    "claims": [
+      {
+        "claim": "Lofts with 550-fill-power down for warmth-to-weight.",
+        "basis": "fill_power=550"
+      },
+      {
+        "claim": "Made from durable ripstop nylon.",
+        "basis": "material=ripstop nylon"
+      }
+    ]
+  },
+  {
+    "id": "NB-0025",
+    "name": "Northbay Talus Hiking Boot",
+    "category": "footwear",
+    "price": 230.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 550,
+      "waterproof_rating_mm": 16000,
+      "sole_type": "lugged rubber",
+      "material": "nubuck leather"
+    },
+    "stock": 498,
+    "claims": [
+      {
+        "claim": "Holds up in heavy rain with a 16000mm waterproof rating.",
+        "basis": "waterproof_rating_mm=16000"
+      },
+      {
+        "claim": "Lightweight build at just 0.55 kg.",
+        "basis": "weight_grams=550"
+      }
+    ]
+  },
+  {
+    "id": "NB-0026",
+    "name": "Northbay Ember Titanium Pot",
+    "category": "cookware",
+    "price": 124.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 840,
+      "capacity_liters": 1.3,
+      "fuel_type": "n/a",
+      "material": "titanium"
+    },
+    "stock": 284,
+    "claims": [
+      {
+        "claim": "Carries up to 1.3 liters of gear.",
+        "basis": "capacity_liters=1.3"
+      },
+      {
+        "claim": "Made from durable titanium.",
+        "basis": "material=titanium"
+      },
+      {
+        "claim": "Lightweight build at just 0.84 kg.",
+        "basis": "weight_grams=840"
+      }
+    ]
+  },
+  {
+    "id": "NB-0027",
+    "name": "Northbay Firefly Trail Light",
+    "category": "lighting",
+    "price": 78.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 530,
+      "lumens": 1000,
+      "battery_life_hours": 30,
+      "waterproof_rating_ipx": 8,
+      "rechargeable": true,
+      "material": "aluminum housing"
+    },
+    "stock": 123,
+    "claims": [
+      {
+        "claim": "Lightweight build at just 0.53 kg.",
+        "basis": "weight_grams=530"
+      },
+      {
+        "claim": "Weather-sealed to IPX8 against rain and splashes.",
+        "basis": "waterproof_rating_ipx=8"
+      },
+      {
+        "claim": "Made from durable aluminum housing.",
+        "basis": "material=aluminum housing"
+      },
+      {
+        "claim": "Keeps contents warm for a full 24 hours.",
+        "basis": "UNGROUNDED"
+      }
+    ]
+  },
+  {
+    "id": "NB-0028",
+    "name": "Northbay Compass Rose Baseplate Compass",
+    "category": "navigation",
+    "price": 209.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 100,
+      "battery_life_hours": 20,
+      "water_resistant": true,
+      "declination_adjustable": true,
+      "material": "glass-filled nylon"
+    },
+    "stock": 124,
+    "claims": [
+      {
+        "claim": "Made from durable glass-filled nylon.",
+        "basis": "material=glass-filled nylon"
+      },
+      {
+        "claim": "Runs up to 20 hours per charge.",
+        "basis": "battery_life_hours=20"
+      },
+      {
+        "claim": "Lightweight build at just 0.10 kg.",
+        "basis": "weight_grams=100"
+      }
+    ]
+  },
+  {
+    "id": "NB-0029",
+    "name": "Northbay Cirque Backpacking Tent",
+    "category": "tents",
+    "price": 470.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1150,
+      "capacity_persons": 1,
+      "waterproof_rating_mm": 3000,
+      "season_rating": 3,
+      "packed_length_cm": 36,
+      "material": "silnylon"
+    },
+    "stock": 303,
+    "claims": [
+      {
+        "claim": "Lightweight build at just 1.15 kg.",
+        "basis": "weight_grams=1150"
+      },
+      {
+        "claim": "Holds up in heavy rain with a 3000mm waterproof rating.",
+        "basis": "waterproof_rating_mm=3000"
+      },
+      {
+        "claim": "Made from durable silnylon.",
+        "basis": "material=silnylon"
+      }
+    ]
+  },
+  {
+    "id": "NB-0030",
+    "name": "Northbay Switchback Frame Pack",
+    "category": "backpacks",
+    "price": 146.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 2500,
+      "capacity_liters": 40,
+      "waterproof_rating_mm": 1000,
+      "frame_type": "internal frame",
+      "material": "ripstop nylon"
+    },
+    "stock": 410,
+    "claims": [
+      {
+        "claim": "Carries up to 40 liters of gear.",
+        "basis": "capacity_liters=40"
+      },
+      {
+        "claim": "Made from durable ripstop nylon.",
+        "basis": "material=ripstop nylon"
+      }
+    ]
+  },
+  {
+    "id": "NB-0031",
+    "name": "Northbay Meadowlark Insulated Vest",
+    "category": "insulation",
+    "price": 261.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 575,
+      "fill_power": 550,
+      "temperature_rating_c": -1,
+      "packable": false,
+      "material": "ripstop nylon"
+    },
+    "stock": 402,
+    "claims": [
+      {
+        "claim": "Lofts with 550-fill-power down for warmth-to-weight.",
+        "basis": "fill_power=550"
+      },
+      {
+        "claim": "Made from durable ripstop nylon.",
+        "basis": "material=ripstop nylon"
+      },
+      {
+        "claim": "Rated down to -1°C.",
+        "basis": "temperature_rating_c=-1"
+      }
+    ]
+  },
+  {
+    "id": "NB-0032",
+    "name": "Northbay Scramble Winter Boot",
+    "category": "footwear",
+    "price": 242.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 1175,
+      "waterproof_rating_mm": 5000,
+      "sole_type": "multi-terrain",
+      "material": "waterproof suede"
+    },
+    "stock": 120,
+    "claims": [
+      {
+        "claim": "Holds up in heavy rain with a 5000mm waterproof rating.",
+        "basis": "waterproof_rating_mm=5000"
+      },
+      {
+        "claim": "Made from durable waterproof suede.",
+        "basis": "material=waterproof suede"
+      }
+    ]
+  },
+  {
+    "id": "NB-0033",
+    "name": "Northbay Camp Chef Titanium Pot",
+    "category": "cookware",
+    "price": 134.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 620,
+      "capacity_liters": 1.0,
+      "fuel_type": "liquid fuel",
+      "material": "hard-anodized steel"
+    },
+    "stock": 338,
+    "claims": [
+      {
+        "claim": "Carries up to 1.0 liters of gear.",
+        "basis": "capacity_liters=1.0"
+      },
+      {
+        "claim": "Lightweight build at just 0.62 kg.",
+        "basis": "weight_grams=620"
+      }
+    ]
+  },
+  {
+    "id": "NB-0034",
+    "name": "Northbay Firefly Area Light",
+    "category": "lighting",
+    "price": 45.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 225,
+      "lumens": 1000,
+      "battery_life_hours": 15,
+      "waterproof_rating_ipx": 4,
+      "rechargeable": true,
+      "material": "aluminum housing"
+    },
+    "stock": 425,
+    "claims": [
+      {
+        "claim": "Made from durable aluminum housing.",
+        "basis": "material=aluminum housing"
+      },
+      {
+        "claim": "Lightweight build at just 0.23 kg.",
+        "basis": "weight_grams=225"
+      }
+    ]
+  },
+  {
+    "id": "NB-0035",
+    "name": "Northbay Wayfinder Route Beacon",
+    "category": "navigation",
+    "price": 319.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 140,
+      "battery_life_hours": 0,
+      "water_resistant": false,
+      "declination_adjustable": false,
+      "material": "reinforced polymer"
+    },
+    "stock": 342,
+    "claims": [
+      {
+        "claim": "Made from durable reinforced polymer.",
+        "basis": "material=reinforced polymer"
+      },
+      {
+        "claim": "Lightweight build at just 0.14 kg.",
+        "basis": "weight_grams=140"
+      }
+    ]
+  },
+  {
+    "id": "NB-0036",
+    "name": "Northbay Cirque Backpacking Tent",
+    "category": "tents",
+    "price": 245.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 2350,
+      "capacity_persons": 2,
+      "waterproof_rating_mm": 2000,
+      "season_rating": 4,
+      "packed_length_cm": 49,
+      "material": "ripstop nylon"
+    },
+    "stock": 173,
+    "claims": [
+      {
+        "claim": "Made from durable ripstop nylon.",
+        "basis": "material=ripstop nylon"
+      },
+      {
+        "claim": "Built for 4-season use.",
+        "basis": "season_rating=4"
+      }
+    ]
+  },
+  {
+    "id": "NB-0037",
+    "name": "Northbay Trailhead Frame Pack",
+    "category": "backpacks",
+    "price": 234.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 2400,
+      "capacity_liters": 65,
+      "waterproof_rating_mm": 1000,
+      "frame_type": "internal frame",
+      "material": "Cordura-style fabric"
+    },
+    "stock": 52,
+    "claims": [
+      {
+        "claim": "Made from durable Cordura-style fabric.",
+        "basis": "material=Cordura-style fabric"
+      },
+      {
+        "claim": "Carries up to 65 liters of gear.",
+        "basis": "capacity_liters=65"
+      }
+    ]
+  },
+  {
+    "id": "NB-0038",
+    "name": "Northbay Frostpine Puffy Hoodie",
+    "category": "insulation",
+    "price": 159.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 800,
+      "fill_power": 800,
+      "temperature_rating_c": -9,
+      "packable": true,
+      "material": "responsibly sourced down"
+    },
+    "stock": 152,
+    "claims": [
+      {
+        "claim": "Lightweight build at just 0.80 kg.",
+        "basis": "weight_grams=800"
+      },
+      {
+        "claim": "Lofts with 800-fill-power down for warmth-to-weight.",
+        "basis": "fill_power=800"
+      },
+      {
+        "claim": "Made from durable responsibly sourced down.",
+        "basis": "material=responsibly sourced down"
+      }
+    ]
+  },
+  {
+    "id": "NB-0039",
+    "name": "Northbay Muddler Hiking Boot",
+    "category": "footwear",
+    "price": 87.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 775,
+      "waterproof_rating_mm": 10000,
+      "sole_type": "lugged rubber",
+      "material": "waterproof suede"
+    },
+    "stock": 329,
+    "claims": [
+      {
+        "claim": "Made from durable waterproof suede.",
+        "basis": "material=waterproof suede"
+      },
+      {
+        "claim": "Lightweight build at just 0.78 kg.",
+        "basis": "weight_grams=775"
+      },
+      {
+        "claim": "Field-proven across all seven continents.",
+        "basis": "UNGROUNDED"
+      }
+    ]
+  },
+  {
+    "id": "NB-0040",
+    "name": "Northbay Mess Kit Cook Set",
+    "category": "cookware",
+    "price": 131.99,
+    "currency": "USD",
+    "attributes": {
+      "weight_grams": 810,
+      "capacity_liters": 1.3,
+      "fuel_type": "n/a",
+      "material": "anodized aluminum"
+    },
+    "stock": 83,
+    "claims": [
+      {
+        "claim": "Made from durable anodized aluminum.",
+        "basis": "material=anodized aluminum"
+      },
+      {
+        "claim": "Lightweight build at just 0.81 kg.",
+        "basis": "weight_grams=810"
+      },
+      {
+        "claim": "Carries up to 1.3 liters of gear.",
+        "basis": "capacity_liters=1.3"
+      }
+    ]
+  }
+]
