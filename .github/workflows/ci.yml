@@ -1,0 +1,37 @@
+name: ci
+
+# Lint, type-check, and test on every push and PR. No API key is used or needed:
+# the entire suite runs against deterministic logic and cached fixtures.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: mypy
+        run: uv run mypy
+
+      - name: Tests
+        run: uv run pytest

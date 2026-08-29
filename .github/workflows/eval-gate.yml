@@ -1,0 +1,30 @@
+name: eval-gate
+
+# The regression gate (SPEC §7). Runs the golden set off committed fixtures and
+# fails the PR on any per-dimension regression beyond tolerance versus
+# evals/baseline.json. Deliberately runs WITHOUT an API key — reviewers and CI
+# both replay the same cached responses, so results are reproducible.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Regression gate
+        run: uv run python -m autonomy_ladder.evals.gate --check

@@ -1,0 +1,38 @@
+# Secrets — never commit (SPEC §11)
+.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.uv/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Runtime artifacts (append-only ledger + telemetry are regenerated locally)
+*.sqlite
+*.sqlite3
+*.db
+runtime/
+telemetry/*.jsonl
+!telemetry/.gitkeep
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
