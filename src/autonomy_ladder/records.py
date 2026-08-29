@@ -95,3 +95,37 @@ class DeliverabilityReport(BaseModel):
     spam_complaint_rate: float = Field(ge=0.0)
     unsubscribe_rate: float = Field(ge=0.0)
     bounce_rate: float = Field(ge=0.0)
+
+
+class CampaignBrief(BaseModel):
+    """The input to the agent: what campaign to produce, for whom (SPEC §6)."""
+
+    model_config = {"frozen": True}
+
+    campaign_type: str
+    goal: str
+    requested_segment: SegmentBand
+    discount_pct: float = 0.0
+    product_ids: list[str] = Field(default_factory=list)
+    notes: str = ""
+
+
+class CampaignContent(BaseModel):
+    """The agent's output: the campaign to be judged and, if permitted, sent.
+
+    This is the artifact the independent checks grade and the controller governs.
+    ``claims`` are the factual statements the Claim Verifier must ground against
+    the catalog; ``target_segment`` is the audience the Segment Analyst resolved.
+    """
+
+    model_config = {"frozen": True}
+
+    subject: str
+    preview_text: str = ""
+    body: str
+    cta_text: str = ""
+    cta_url: str = ""
+    claims: list[str] = Field(default_factory=list)
+    target_segment: SegmentBand
+    discount_pct: float = 0.0
+    product_ids: list[str] = Field(default_factory=list)

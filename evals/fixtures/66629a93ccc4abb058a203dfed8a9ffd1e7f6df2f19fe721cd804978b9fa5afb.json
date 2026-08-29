@@ -1,0 +1,8 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "request": {
+    "system": "You are a strict claim verifier. You only trust the catalog facts given to you.",
+    "user": "Verify every factual claim in the campaign is grounded in the catalog facts. Fail if any claim is unsupported, exaggerated, or contradicts the facts.\nCatalog facts:\nNB-0001 Northbay Basecamp Dome: attributes={'weight_grams': 2800, 'capacity_persons': 2, 'waterproof_rating_mm': 5000, 'season_rating': 3, 'packed_length_cm': 47, 'material': 'ripstop nylon'}\n\nClaims to verify:\n(no explicit claims)\n\nBody: It's back. Grab the Basecamp Dome before it goes again.\nRespond with ONLY a JSON object, no prose or code fences, of the form: {\"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\", \"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...]}."
+  },
+  "response": "{\"score\": 0.95, \"verdict\": \"pass\", \"reasoning\": \"seed fixture (synthetic; regenerate with make fixtures)\", \"evidence\": []}"
+}

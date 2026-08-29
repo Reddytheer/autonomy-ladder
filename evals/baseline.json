@@ -1,0 +1,21 @@
+{
+  "tolerance": 0.05,
+  "dimensions": {
+    "segment_correctness": {
+      "accuracy": 1.0,
+      "n": 10
+    },
+    "claim_groundedness": {
+      "accuracy": 1.0,
+      "n": 10
+    },
+    "brand_voice": {
+      "accuracy": 1.0,
+      "n": 10
+    },
+    "structure_quality": {
+      "accuracy": 1.0,
+      "n": 10
+    }
+  }
+}
