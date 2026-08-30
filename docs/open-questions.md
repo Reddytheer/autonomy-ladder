@@ -53,4 +53,22 @@ specified; it is binding (50/50 → 0.9286 > 0.92).
 
 ## Choices made where the spec was silent
 
-*(none yet — appended as they arise)*
+### OQ-3. Model list prices for the routing report
+SPEC §6 asks for a routing report showing the cost delta of the Haiku
+assignments, but does not give prices. The cost table in
+`src/autonomy_ladder/observability/cost.py` uses USD-per-million-token list
+prices (Haiku 4.5: 1.00 in / 5.00 out; Sonnet 4.6: 3.00 in / 15.00 out) as a
+single editable constant. These are operational inputs, not spec thresholds; the
+report's value is the methodology and the delta, which hold regardless of the
+exact numbers. Update the table if prices change.
+
+### OQ-4. "Low confidence" threshold for the judgment lane
+SPEC §5 routes "low confidence" items to the judgment lane but does not define
+the cutoff. We use the weakest single dimension score < 0.60
+(`queue/lanes.py: LOW_CONFIDENCE_THRESHOLD`). Chosen as the simplest defensible
+default; easily tuned.
+
+### OQ-5. Send-window duration in the demo
+SPEC §5 makes age an SLA via `send_window_expires_at` but does not fix a default
+window length. The demo/seed uses a 48-hour window; the queue logic itself is
+window-agnostic (it works off whatever expiry each item carries).
