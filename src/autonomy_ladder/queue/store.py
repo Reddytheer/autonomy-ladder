@@ -107,6 +107,10 @@ class ReviewQueue:
         ).fetchall()
         return [QueueItem.model_validate_json(r[0]) for r in rows]
 
+    def pending_ids(self) -> list[str]:
+        """Run ids of every currently-pending item."""
+        return [i.run_id for i in self._by_status(ItemStatus.PENDING)]
+
     def set_status(self, run_id: str, status: ItemStatus) -> None:
         item = self.get(run_id)
         if item is None:
