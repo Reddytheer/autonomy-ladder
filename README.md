@@ -126,10 +126,13 @@ docs/          architecture, autonomy-model, evaluation, open-questions, adr/
 
 ## Notes
 
-- **Keyless reviewing is deliberate.** Judge responses are cached by prompt hash
-  and committed; `make eval`/`make gate` replay them, so results are reproducible
-  with no key. The committed fixtures are synthetic placeholders until you run
-  `make fixtures`; see [docs/evaluation.md](docs/evaluation.md).
+- **Keyless reviewing is deliberate.** `make eval`/`make gate` run a deterministic
+  decision-routing eval over all 75 golden cases — the controller reproduces every
+  authored decision and lane (75/75) with no API key, which validates the routing
+  and `constraint_block` logic (ADR 0008). Measuring whether the *judges* reproduce
+  the authored verdicts, and the Cohen's-κ calibration, require recording real judge
+  responses (`make fixtures`) and are the live-key steps 11–13; see
+  [docs/evaluation.md](docs/evaluation.md).
 - **Scope** (SPEC §15): no auth, no real database (JSONL + SQLite only), no
   deployment, no Docker, no real email sending, no additional model providers.
 - License: [MIT](LICENSE).
