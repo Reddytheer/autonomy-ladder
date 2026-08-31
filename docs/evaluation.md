@@ -42,49 +42,87 @@ cost delta of the Haiku assignments.
 ## Judge calibration — Cohen's κ (`evals/calibration.py`)
 
 Raw accuracy flatters a judge that mostly guesses the majority label. Cohen's κ
-corrects for chance agreement. We compute per-dimension κ against human-labeled
-cases (`evals/calibration/human_labels.jsonl`). If κ < 0.6 for a dimension, the
-judge prompt needs revision — and we say so here rather than hiding it.
+corrects for chance agreement. We compute per-dimension κ between judge verdicts and
+the 46 human-labeled cases in `evals/calibration/calibration_labels.jsonl`. If κ <
+0.6 for a dimension, the judge prompt needs revision — and we say so here rather than
+hiding it.
 
-Current κ on the committed **seed** label set:
+**Provenance (stated plainly).** Reference labels were authored by the maintainer,
+AI-drafted and reviewed case by case. Cases where the reviewer's verdict differed
+from the draft were removed from the golden set rather than retained, on the basis
+that a case two careful reviewers score differently is a rubric gap rather than
+ground truth. This is *reviewed labeling*, which is normal practice and defensible —
+it is **not** independent human labeling, and is not described as such. The
+`provenance` field on every row records this and is not stripped.
 
-| dimension | n | κ | agreement | calibrated? |
-|---|---|---|---|---|
-| segment_correctness | 10 | 0.615 | 0.90 | yes |
-| claim_groundedness | 10 | 0.615 | 0.90 | yes |
-| brand_voice | 10 | 0.545 | 0.80 | **NO (< 0.6)** |
-| structure_quality | 10 | 0.545 | 0.80 | **NO (< 0.6)** |
+**κ is pending a recording.** Computing κ needs judge verdicts, which come from
+running the briefs through the live pipeline (`make fixtures`, step 11). The keyless
+build therefore reports the *label distribution* and readiness, not fabricated κ
+numbers. Run `autonomy-ladder calibrate` to see it; recompute κ after step 11.
 
-Two dimensions are below the 0.6 bar on the seed set — the honest reading is that
-`brand_voice` and `structure_quality` judges need prompt revision (or more labels)
-before they can be trusted. These numbers are from the seeded label rows; run
-`autonomy-ladder calibrate` to reproduce, and recompute against live judge output
-once fixtures are recorded (`make fixtures`). The calibration set grows to ~40
-labeled cases as authored.
+Per-dimension failure labels (which bound how precise a κ can be):
 
-## Golden set and adversarial suite
+| dimension | labels | failure labels | note |
+|---|---|---|---|
+| claim_groundedness | 46 | 17 | ample |
+| brand_voice | 46 | 7 | usable |
+| segment_correctness | 46 | 5 | **directional only** |
 
-- `evals/goldens/*.jsonl` — versioned cases split `easy` / `ambiguous` /
-  `adversarial`, each with a campaign artifact and authored per-dimension
-  expectations. Seeded with 10; grows to 60–80.
-- `evals/adversarial/*.jsonl` — kept separate. Covers prompt injection via
-  customer-data fields, unsupported-claim bait, brand-rule traps, and
-  segment-boundary manipulation.
+**Sample-size caveat (required).** `segment_correctness` has only 5 failure cases,
+so a κ on that dimension is *directional, not precise* — one judge disagreement moves
+it materially. It must be reported with this caveat and not presented alongside the
+other dimensions as if equally solid. Two judge rubrics (`claim_groundedness`,
+`segment_correctness`) were already revised per the review overrides below and will
+be re-measured after step 11.
+
+## Golden set and security suite
+
+- `evals/goldens/goldens.jsonl` — **75** versioned, brief-based end-to-end cases
+  split `easy` (29) / `ambiguous` (28) / `adversarial` (18), each with authored
+  per-dimension verdicts, an expected controller decision, and an expected review
+  lane. Several **paired** cases are load-bearing and guarded by
+  `tests/test_goldens.py`: `GS-PD-08`/`09` (data decides scarcity, not wording),
+  `GS-PL-07`/`08` (comparative claim true vs false), `GS-WB-06`/`07` (win-back
+  audience recency), and `GS-NL-06`/`07` (byte-identical content, Tier 1 vs Tier 2 —
+  the thesis of the project).
+- `evals/adversarial/security.jsonl` — 8 security cases, each with an
+  `expected_security_event`: prompt injection via customer/catalog/brand-rules
+  fields, tier-escalation, constraint-evasion, segment-redefinition, eval-gaming,
+  and rate-limit-evasion. See [security](#security).
 
 ## The regression gate (`evals/gate.py`)
 
-`make eval` runs the golden set and prints a per-dimension table. `make gate` does
-the same and **exits non-zero** if any dimension's verdict accuracy has regressed
-beyond tolerance (default 0.05) versus `evals/baseline.json`. It is wired into CI
-(`.github/workflows/eval-gate.yml`). `tests/test_gate.py` proves it passes at
-baseline, **fails on a degraded prompt**, and fails loudly if fixtures go missing.
+The gate has two layers:
 
-## Fixture caching — why `make eval` needs no API key
+1. **Decision-routing (keyless, always on).** `make eval` replays every golden's
+   authored verdicts through the pure controller routing and checks the resulting
+   decision *and* lane match what the case authored. The controller reproduces all
+   75 (`decision_accuracy` and `lane_accuracy` both 1.000), which validates the
+   constraint-block and lane logic — including the `constraint_block` change (ADR
+   0008) — with no API key. `make gate` **exits non-zero** if routing accuracy
+   regresses beyond tolerance versus `evals/baseline.json` (wired into CI via
+   `.github/workflows/eval-gate.yml`). `tests/test_gate.py` proves it passes at
+   baseline and flags a regression.
+2. **Judge accuracy (needs a key, step 11).** Whether the *judges* reproduce the
+   authored verdicts from generated content is measured by running the briefs
+   through the live pipeline (`make fixtures`) and comparing. This is deferred to the
+   live-key phase; see below.
 
-Judge calls are cached by a hash of `(model, system, user)` under
-`evals/fixtures/`, committed to the repo. In replay mode (the default) a cache miss
-is an *error*, never a silent live call — so a reviewer runs `make eval` / `make
-gate` and sees reproducible results with **no API key**. This is a deliberate
-usability decision. `make fixtures` (with `ANTHROPIC_API_KEY`) records real
-responses; the committed fixtures are synthetic placeholders until then, which is
-why the κ table above should be regenerated after a real recording.
+## Fixture caching — why the keyless gate needs no API key
+
+Judge calls are cached by a hash of `(model, system, user)` under `evals/fixtures/`.
+In replay mode a cache miss is an *error*, never a silent live call. The keyless
+decision-routing gate above needs no judge fixtures at all (it replays authored
+verdicts). `make fixtures` (with `ANTHROPIC_API_KEY`) runs the briefs through the
+pipeline and records real judge responses for the judge-accuracy measurement and the
+κ recomputation — steps 11–12. No synthetic placeholder fixtures are committed.
+
+## Security
+
+Resisted attacks are events, not silent passes (`src/autonomy_ladder/security.py`).
+A signature scanner over brief/injected text emits typed `SecurityEvent`s that are
+persisted even when the run otherwise succeeds, and the console surfaces a count and
+log. The real defences are architectural: `SEC-03` (a brief claiming "Tier 2
+approved") has provably zero effect because no LLM-visible input carries a tier
+(P1), and `SEC-07` (self-asserted compliance) is not treated as evidence. Both are
+first-class tests in `tests/test_security.py`.

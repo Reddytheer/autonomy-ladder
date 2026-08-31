@@ -68,6 +68,40 @@ the cutoff. We use the weakest single dimension score < 0.60
 (`queue/lanes.py: LOW_CONFIDENCE_THRESHOLD`). Chosen as the simplest defensible
 default; easily tuned.
 
+### OQ-6. Wilson exclusion keys on *why* a run was blocked (owner decision)
+The HANDOFF listed "segment ineligible for the tier" as a constraint_block excluded
+from the Wilson window. Taken literally that breaks 0→1 promotion (at Tier 0 every
+clean run is tier-ineligible, so nothing would count as a success). Owner decision
+(Option 1): exclude only **discount over ceiling, rate limit, and never-autonomous
+segments**; a clean run to an autonomy-eligible band merely above the current tier
+counts as a **quality success**. Full rationale in
+[ADR 0008](adr/0008-constraint-blocks-excluded-from-tier-standing.md).
+
+**Known gaming surface (accepted).** Because a clean 90-day campaign counts toward
+0→1, an operator could in principle accrue promotion evidence entirely from 90-day
+sends without ever exercising the 30-day case the tier actually governs. This is
+backstopped by the probation verification challenge, which runs the golden subset
+for the campaign type and would exercise the real case. Left as a monitored known
+issue rather than special-cased.
+
+### OQ-7. Review-queue lanes diverge from SPEC §5 for brand-only failures
+SPEC §5 defines the batch lane as "no critical flag and brand_voice ≥ 0.75." The
+updated golden set puts brand-voice-only failures in the **batch** lane (they are
+mild, groupable) and reserves the **judgment** lane for critical failures,
+over-ceiling, and never-autonomous blocks. The goldens are the newer authored
+truth, so the lane logic follows them; validated by the routing gate reproducing all
+75 authored `expected_lane` values. This supersedes the literal §5 batch predicate.
+
+### OQ-8. Monitoring requirement M1 (brief-instructed vs agent-originated failures)
+The `GS-PD-16` decision classifies a brief-instructed discount-stacking evasion as a
+*quality failure* ("the brief told me to" is not reasoning an autonomous agent
+should use). This is defensible but not obviously correct, so every quality failure
+records a `failure_origin` (`brief_instructed` | `agent_originated`) and the console
+surfaces the ratio. Resolution path is stated in
+[docs/autonomy-model.md](autonomy-model.md): if a material share of quality failures
+turn out to be brief-instructed, reclassify to `constraint_block` and flag the
+requester rather than the agent.
+
 ### OQ-5. Send-window duration in the demo
 SPEC §5 makes age an SLA via `send_window_expires_at` but does not fix a default
 window length. The demo/seed uses a 48-hour window; the queue logic itself is

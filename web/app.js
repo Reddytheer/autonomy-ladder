@@ -7,6 +7,7 @@ const TABS = [
   ["queue", "Review queue"],
   ["runs", "Runs"],
   ["ledger", "Trust ledger"],
+  ["security", "Security"],
 ];
 
 const esc = (s) =>
@@ -218,8 +219,44 @@ async function renderLedger() {
     <tbody>${rows || '<tr><td colspan="6" class="text-neutral-400">No tier changes yet.</td></tr>'}</tbody></table></div>`;
 }
 
+// ---- Security + monitoring (view 5) ---------------------------------------
+async function renderSecurity() {
+  const [sec, mon] = await Promise.all([get("/api/security"), get("/api/monitoring")]);
+  const rows = sec.events
+    .map(
+      (e) => `<tr><td class="text-neutral-400">${esc(e.ts.slice(0, 19).replace("T", " "))}</td>
+        <td>${esc(e.campaign_type)}</td>
+        <td><span class="badge bg-amber-100 text-amber-800">${esc(e.event_type)}</span></td>
+        <td>${e.resisted ? '<span class="badge bg-green-100 text-green-700">resisted</span>' : ""}</td>
+        <td class="text-neutral-500">${esc(e.detail)}</td></tr>`
+    )
+    .join("");
+  const total = mon.brief_instructed + mon.agent_originated + mon.unclassified;
+  document.getElementById("view-security").innerHTML = `
+    <div class="grid gap-4 lg:grid-cols-3">
+      <div class="card p-3"><div class="text-neutral-400">Resisted attacks</div>
+        <div class="text-2xl font-semibold">${sec.count}</div>
+        <div class="text-neutral-500">Logged even when the run otherwise succeeded.</div></div>
+      <div class="card p-3 lg:col-span-2"><div class="text-neutral-400">M1 · quality-failure origin</div>
+        <div class="mt-1">brief-instructed <b>${mon.brief_instructed}</b> · agent-originated
+          <b>${mon.agent_originated}</b> · unclassified <b>${mon.unclassified}</b> (of ${total})</div>
+        <div class="text-neutral-500 mt-1">If brief-instructed failures dominate, the evasion rule
+          (GS-PD-16) is reclassified to a constraint block — see docs/autonomy-model.md.</div></div>
+    </div>
+    <div class="card p-2 mt-4"><table>
+      <thead><tr><th>when</th><th>type</th><th>event</th><th></th><th>detail</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="text-neutral-400">No security events.</td></tr>'}</tbody>
+    </table></div>`;
+}
+
 // ---- Shell ----------------------------------------------------------------
-const RENDER = { dashboard: renderDashboard, queue: renderQueue, runs: renderRuns, ledger: renderLedger };
+const RENDER = {
+  dashboard: renderDashboard,
+  queue: renderQueue,
+  runs: renderRuns,
+  ledger: renderLedger,
+  security: renderSecurity,
+};
 function switchTab(name) {
   document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
   document.getElementById(`view-${name}`).classList.remove("hidden");

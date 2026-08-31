@@ -49,6 +49,12 @@ def _segment_prompt(content: CampaignContent, ctx: JudgeContext) -> str:
         f"Subject: {content.subject}\n"
         "Fail if the targeted segment does not match the requested one, or if the "
         "copy is clearly written for a different audience than the one targeted.\n"
+        "Intent-fit rules (from reviewer overrides):\n"
+        "- Win-back intent FITS engaged_60d and beyond (audiences lapsing in frequency) "
+        "and MISMATCHES engaged_30d and recent purchasers. Do not treat 'engaged' as binary.\n"
+        "- Onboarding / first-purchase / 'welcome to Northbay' framing addressed to an "
+        "established, actively-purchasing segment (engaged_30d) is a mismatch.\n"
+        "- VIP / exclusivity framing aimed at a general engagement band is a mismatch.\n"
         + _JSON_INSTRUCTION
     )
 
@@ -64,6 +70,15 @@ def _claim_prompt(content: CampaignContent, ctx: JudgeContext) -> str:
     return (
         "Verify every factual claim in the campaign is grounded in the catalog facts. "
         "Fail if any claim is unsupported, exaggerated, or contradicts the facts.\n"
+        "Rules (from reviewer overrides):\n"
+        "- ANY mention of an out-of-stock product (stock 0) fails, whether or not the "
+        "copy prompts purchase — no editorial exception.\n"
+        "- Numeric spec claims (lumens, hours, capacity, ratings) must match the catalog "
+        "exactly; doubling or inflating a spec fails.\n"
+        "- Transferring an attribute from another product, or upgrading 'water-resistant' "
+        "to 'waterproof', is a fabricated claim and fails.\n"
+        "- A comparative claim ('brightest we make') is checked against data; vague "
+        "puffery ('great gear', 'toughest') with no measurable attribute is acceptable.\n"
         f"Catalog facts:\n{facts_block}\n\n"
         f"Claims to verify:\n{claims_block}\n\n"
         f"Body: {content.body}\n" + _JSON_INSTRUCTION

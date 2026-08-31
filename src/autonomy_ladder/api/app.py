@@ -72,6 +72,23 @@ def runs() -> JSONResponse:
     return JSONResponse([r.model_dump(mode="json") for r in _service.runs.recent(50)])
 
 
+@app.get("/api/security")
+def security() -> JSONResponse:
+    """Resisted-attack log and count (HANDOFF Drop 2)."""
+    return JSONResponse(
+        {
+            "count": _service.security.count(),
+            "events": [e.model_dump(mode="json") for e in _service.security.recent(50)],
+        }
+    )
+
+
+@app.get("/api/monitoring")
+def monitoring() -> JSONResponse:
+    """M1: quality-failure origin ratio (HANDOFF)."""
+    return JSONResponse(_service.m1_summary())
+
+
 @app.get("/api/runs/{run_id}")
 def run_detail(run_id: str) -> JSONResponse:
     """Full trace of one run: agent output, dimension scores, controller decision (view 3)."""

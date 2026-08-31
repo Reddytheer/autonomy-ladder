@@ -29,6 +29,7 @@ from autonomy_ladder.config import (
 from autonomy_ladder.domain import CampaignType
 from autonomy_ladder.queue.store import ReviewQueue, queue_item_from_decision
 from autonomy_ladder.records import CampaignContent, RunEvaluation
+from autonomy_ladder.security import SecurityEventStore
 
 # Default send window for queued items (SPEC §5; see docs/open-questions.md OQ-5).
 DEFAULT_SEND_WINDOW = timedelta(hours=48)
@@ -98,12 +99,14 @@ class AutonomyService:
         runs: RunStore,
         tiers_config: TiersConfig,
         brand_policy: BrandPolicy,
+        security: SecurityEventStore | None = None,
     ) -> None:
         self.controller = controller
         self.queue = queue
         self.runs = runs
         self.tiers_config = tiers_config
         self.brand_policy = brand_policy
+        self.security = security or SecurityEventStore(":memory:")
 
     @classmethod
     def from_paths(cls, base: Path) -> AutonomyService:
@@ -118,6 +121,7 @@ class AutonomyService:
             runs=RunStore(base / "runs.sqlite"),
             tiers_config=tiers,
             brand_policy=brand,
+            security=SecurityEventStore(base / "security.sqlite"),
         )
 
     @classmethod
@@ -133,10 +137,11 @@ class AutonomyService:
         revisions: int = 0,
         now: datetime | None = None,
         send_window: timedelta = DEFAULT_SEND_WINDOW,
+        failure_origin: str | None = None,
     ) -> ControllerDecision:
         """Let the controller decide, queue the item, and persist the run trace."""
         now = now or datetime.now(UTC)
-        decision = self.controller.process_run(evaluation, now=now)
+        decision = self.controller.process_run(evaluation, now=now, failure_origin=failure_origin)
 
         item = queue_item_from_decision(
             evaluation,
@@ -171,7 +176,33 @@ class AutonomyService:
             out.append(json.loads(status.model_dump_json()))
         return out
 
+    def m1_summary(self) -> dict[str, int]:
+        """Quality-failure origin ratio for monitoring requirement M1 (HANDOFF).
+
+        Counts, across every recorded quality failure, how many were explicitly
+        instructed by the brief vs originated with the agent. If brief-instructed
+        failures dominate, the GS-PD-16 evasion rule should be revisited (ADR 0008).
+        """
+        brief_instructed = agent_originated = unclassified = 0
+        for entry in self.controller._ledger.all():
+            if getattr(entry, "outcome", None) is None:
+                continue
+            if entry.kind == "run" and entry.outcome.value == "quality_failure":
+                origin = entry.failure_origin
+                if origin == "brief_instructed":
+                    brief_instructed += 1
+                elif origin == "agent_originated":
+                    agent_originated += 1
+                else:
+                    unclassified += 1
+        return {
+            "brief_instructed": brief_instructed,
+            "agent_originated": agent_originated,
+            "unclassified": unclassified,
+        }
+
     def close(self) -> None:
         self.controller._ledger.close()
         self.queue.close()
         self.runs.close()
+        self.security.close()

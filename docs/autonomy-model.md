@@ -53,6 +53,44 @@ record (0.8389) is below 0.85, so 20 was non-binding; see
 [open-questions.md](open-questions.md) OQ-1/OQ-2 and
 [ADR 0004](adr/0004-wilson-interval-for-promotion.md).
 
+## What counts as evidence (constraint_block vs quality_failure)
+
+Tier standing must reflect the agent's *judgment*, not the briefs it receives. So
+every run is classified (ADR 0008):
+
+* **`quality_pass`** — clean work on an autonomy-eligible band. Counts as a Wilson
+  success — including a clean run to a band merely *above* the current tier
+  (e.g. a clean `engaged_90d` campaign at Tier 1): the work was good and the audience
+  is one autonomy could cover, which is exactly the evidence promotion is built on.
+* **`quality_failure`** — a graded dimension failed. Counts as a Wilson failure. Takes
+  precedence: a run that is both a failure and a constraint block counts as a failure.
+* **`constraint_block`** — clean, but blocked by a rule that says nothing about
+  readiness: discount over ceiling, rate limit, or a never-autonomous segment.
+  **Excluded from the Wilson window entirely** — the agent is neither rewarded nor
+  punished for the requester's out-of-bounds choices.
+
+The exclusion keys on *why* a run was blocked, not on the fact that it was. Taking
+the literal "any tier-ineligible run is excluded" reading would have made 0→1
+promotion impossible (at Tier 0 every clean run is tier-ineligible); the failure mode
+and the chosen resolution are recorded in
+[ADR 0008](adr/0008-constraint-blocks-excluded-from-tier-standing.md) and
+[open-questions.md](open-questions.md) OQ-6.
+
+## Open question — M1: brief-instructed vs agent-originated failures
+
+One rule is deliberately marked unsettled. Case `GS-PD-16` classifies a
+*brief-instructed* discount-stacking evasion as a **quality failure** — "the brief
+told me to" is not reasoning an autonomous agent should use. This is defensible but
+not obviously correct, so it is instrumented rather than assumed: every quality
+failure records a `failure_origin` (`brief_instructed` | `agent_originated`) and the
+console surfaces the ratio.
+
+**Resolution path.** If a material share of quality failures turn out to be
+brief-instructed, the classification should move to `constraint_block` and the
+*requester* — not the agent — should be flagged. A framework that says which of its
+own rules it is unsure about, and how it would settle them, is stronger than one that
+pretends every threshold is settled.
+
 ## Demotion and probation (the closed loop)
 
 Demotion triggers on **either**:

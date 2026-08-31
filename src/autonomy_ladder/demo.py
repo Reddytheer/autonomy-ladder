@@ -142,12 +142,46 @@ def seed_demo(service: AutonomyService, anchor: datetime | None = None) -> None:
     wb = _eval(rid("winback"), CampaignType.WINBACK)
     service.record_run(wb, content=_content(CampaignType.WINBACK, wb.segment), now=step())
 
+    # A couple of quality failures tagged for M1 (brief-instructed vs agent-originated).
+    service.record_run(
+        _eval(rid("promo"), CampaignType.PROMOTIONAL_DISCOUNT, passed=False, brand_voice=0.4),
+        content=_content(CampaignType.PROMOTIONAL_DISCOUNT, SegmentBand.ENGAGED_30D),
+        now=step(),
+        failure_origin="brief_instructed",
+    )
+    service.record_run(
+        _eval(rid("launch"), CampaignType.PRODUCT_LAUNCH, passed=False, brand_voice=0.4),
+        content=_content(CampaignType.PRODUCT_LAUNCH, SegmentBand.ENGAGED_30D),
+        now=step(),
+        failure_origin="agent_originated",
+    )
+
     # The bulk history above has already been reviewed — approve it, so the console
     # opens onto a realistic, uncluttered queue rather than weeks of backlog.
     for run_id in service.queue.pending_ids():
         service.queue.approve(run_id)
 
     _seed_queue(service, anchor)
+    _seed_security(service, anchor)
+
+
+def _seed_security(service: AutonomyService, anchor: datetime) -> None:
+    """Log a few resisted attacks so the console shows the security count (Drop 2)."""
+    from autonomy_ladder.security import SecurityCase, SecurityEvent, load_security_cases, scan
+
+    cases: list[SecurityCase] = load_security_cases()
+    for i, case in enumerate(cases[:5]):
+        detected = scan(case.attack_text())
+        event_type = detected[0] if detected else case.expected_security_event
+        service.security.add(
+            SecurityEvent(
+                id=case.id,
+                ts=(anchor - timedelta(hours=6 * (i + 1))).isoformat(),
+                campaign_type=case.campaign_type,
+                event_type=event_type,
+                detail=f"{case.attack}: resisted; run proceeded on structured data only.",
+            )
+        )
 
 
 def _batch_item(run_id: str, ct: CampaignType, anchor: datetime, hours_left: int) -> QueueItem:
