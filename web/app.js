@@ -7,6 +7,7 @@ const TABS = [
   ["queue", "Review queue"],
   ["runs", "Runs"],
   ["ledger", "Trust ledger"],
+  ["outcomes", "Outcomes"],
   ["security", "Security"],
 ];
 
@@ -219,6 +220,82 @@ async function renderLedger() {
     <tbody>${rows || '<tr><td colspan="6" class="text-neutral-400">No tier changes yet.</td></tr>'}</tbody></table></div>`;
 }
 
+// ---- Outcomes / post-send loop (view) -------------------------------------
+const CAMPAIGN_TYPES = [
+  "newsletter",
+  "promotional_discount",
+  "product_launch",
+  "winback",
+  "restock_alert",
+];
+const SCENARIOS = ["nominal", "judge_blindspot", "degrading"];
+
+async function runSimulation() {
+  const btn = document.getElementById("sim-run");
+  const type = document.getElementById("sim-type").value;
+  const scenario = document.getElementById("sim-scenario").value;
+  btn.disabled = true;
+  btn.textContent = "Running…";
+  const res = await fetch("/api/simulate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ campaign_type: type, n: 8, scenario }),
+  }).then((r) => r.json());
+  // Refresh the dashboard underneath so the tier change is visible, then re-render.
+  await renderDashboard();
+  await renderOutcomes();
+  const note = document.getElementById("sim-note");
+  if (note)
+    note.textContent =
+      `Ran ${res.auto_sent} auto-sends · ${res.breaches} breaches · ` +
+      `${res.demotions} demotions · ${res.blind_spots} judge blind spots found.`;
+}
+
+async function renderOutcomes() {
+  const data = await get("/api/outcomes");
+  const cards = data
+    .map((d) => {
+      const bars = d.timeline
+        .map(
+          (t) =>
+            `<span title="${esc(t.ts)} spam=${(t.spam * 100).toFixed(3)}%" style="display:inline-block;width:8px;height:18px;margin-right:2px;border-radius:2px;background:${
+              t.blind_spot ? "#b91c1c" : t.breached ? "#f59e0b" : "#16a34a"
+            }"></span>`
+        )
+        .join("");
+      return `<div class="card p-3">
+        <div class="flex items-center justify-between">
+          <span class="font-semibold">${esc(d.campaign_type)}</span>
+          <span class="text-neutral-400">${d.sent} sent</span></div>
+        <div class="mt-1 flex justify-between text-neutral-500">
+          <span>predicted quality (Wilson) <b>${d.predicted_pass_rate}</b></span>
+          <span>actual clean rate <b>${d.actual_clean_rate}</b></span></div>
+        <div class="mt-2">${bars || '<span class="text-neutral-400">no sends</span>'}</div>
+        <div class="mt-2 text-neutral-600">breaches <b>${d.breaches}</b> ·
+          <span class="text-red-700">judge blind spots found <b>${d.blind_spots}</b></span></div>
+      </div>`;
+    })
+    .join("");
+  const opts = (arr, sel) =>
+    arr.map((v) => `<option value="${v}"${v === sel ? " selected" : ""}>${v}</option>`).join("");
+  document.getElementById("view-outcomes").innerHTML = `
+    <div class="card p-3 mb-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-semibold">Run simulation</span>
+        <select id="sim-type" class="border border-neutral-300 rounded px-2 py-1">${opts(CAMPAIGN_TYPES, "newsletter")}</select>
+        <select id="sim-scenario" class="border border-neutral-300 rounded px-2 py-1">${opts(SCENARIOS, "judge_blindspot")}</select>
+        <button id="sim-run" class="badge bg-accent text-white px-3 py-1">Run 8 campaigns</button>
+        <span id="sim-note" class="text-neutral-500"></span>
+      </div>
+      <div class="mt-1 text-neutral-400">Sends N campaigns at the current tier, simulates real
+        deliverability, and feeds breaches back into standing. A run that passed every eval but
+        breached is flagged a <span class="text-red-700">judge blind spot</span> and added to
+        golden-set candidates.</div>
+    </div>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${cards || '<div class="text-neutral-400">No outcomes yet — run a simulation.</div>'}</div>`;
+  document.getElementById("sim-run").onclick = runSimulation;
+}
+
 // ---- Security + monitoring (view 5) ---------------------------------------
 async function renderSecurity() {
   const [sec, mon] = await Promise.all([get("/api/security"), get("/api/monitoring")]);
@@ -255,6 +332,7 @@ const RENDER = {
   queue: renderQueue,
   runs: renderRuns,
   ledger: renderLedger,
+  outcomes: renderOutcomes,
   security: renderSecurity,
 };
 function switchTab(name) {

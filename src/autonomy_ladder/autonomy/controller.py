@@ -90,6 +90,20 @@ class ControllerDecision(BaseModel):
     rationale: list[str] = []
 
 
+class OutcomeResult(BaseModel):
+    """The result of processing one post-send outcome (HANDOFF 2, ADR 0009)."""
+
+    model_config = {"frozen": True}
+
+    run_id: str
+    campaign_type: CampaignType
+    breached: bool
+    breaches: list[str] = []
+    demoted: bool = False
+    blind_spot: bool = False  # eval_passed_outcome_failed — the judge blind spot
+    state_after: TierState
+
+
 class AutonomyController:
     """Deterministic governor. Reads state from the ledger, writes facts back."""
 
@@ -361,50 +375,75 @@ class AutonomyController:
 
     # ---- post-send loop -----------------------------------------------------
 
-    def process_deliverability(
-        self, report: DeliverabilityReport, now: datetime | None = None
-    ) -> ControllerDecision | None:
-        """Apply the post-send closed loop (SPEC §4).
+    def _find_run(self, ct: CampaignType, run_id: str) -> RunLogEntry | None:
+        for e in self._ledger.for_type(ct):
+            if isinstance(e, RunLogEntry) and e.run_id == run_id:
+                return e
+        return None
 
-        A deliverability breach on any threshold is a CRITICAL post-send failure:
-        it demotes the campaign type to Tier 0 and opens probation. Returns None
-        if there was no breach or nothing to demote.
+    def process_deliverability(
+        self,
+        report: DeliverabilityReport,
+        now: datetime | None = None,
+        metrics: dict[str, float] | None = None,
+    ) -> OutcomeResult:
+        """Apply the post-send closed loop (SPEC §4, HANDOFF 2 / ADR 0009).
+
+        Records an ``outcome`` event for the run (breach or clean). A breach is
+        handled exactly like a critical eval failure — the *same* path: demote to
+        Tier 0, open probation (the queue downgrade happens in the service). A clean
+        outcome confirms the run. ``blind_spot`` marks a run that passed every eval
+        but breached anyway — the highest-value case (eval_passed_outcome_failed).
         """
         now = now or self._clock()
         ts = _iso(now)
         ct = self._resolve_type(report.campaign_type)
-        breaches = C.check_deliverability(report, self._cfg.deliverability_triggers)
-        if not breaches:
-            return None
+        breach_list = C.check_deliverability(report, self._cfg.deliverability_triggers)
+        breached = bool(breach_list)
+        breach_metrics = metrics or {
+            "spam_complaint_rate": report.spam_complaint_rate,
+            "unsubscribe_rate": report.unsubscribe_rate,
+            "bounce_rate": report.bounce_rate,
+        }
+
+        origin_run = self._find_run(ct, report.run_id)
+        passed_eval = origin_run is not None and origin_run.outcome is OutcomeClass.QUALITY_PASS
+        blind_spot = breached and passed_eval
 
         state = self.state(ct)
-        if state.tier <= Tier.ASSIST:
-            return None  # nothing to demote
+        demoted = breached and state.tier > Tier.ASSIST
 
-        self._ledger.append_transition(
+        # Record the post-send fact (always), then the demotion transition (on breach).
+        self._ledger.append_outcome(
             campaign_type=ct,
             ts=ts,
-            reason=TransitionReason.DEMOTION_DELIVERABILITY,
-            from_tier=state.tier,
-            to_tier=Tier.ASSIST,
-            standing_after=Standing.PROBATION,
-            cooldown_after=0,
-            evidence={"breaches": [b.model_dump() for b in breaches]},
             run_id=report.run_id,
+            metrics={k: round(v, 6) for k, v in breach_metrics.items()},
+            breached=breached,
+            breaches=[b.metric for b in breach_list],
+            blind_spot=blind_spot,
         )
-        return ControllerDecision(
+        if demoted:
+            self._ledger.append_transition(
+                campaign_type=ct,
+                ts=ts,
+                reason=TransitionReason.DEMOTION_DELIVERABILITY,
+                from_tier=state.tier,
+                to_tier=Tier.ASSIST,
+                standing_after=Standing.PROBATION,
+                cooldown_after=0,
+                evidence={"breaches": [b.model_dump() for b in breach_list]},
+                run_id=report.run_id,
+            )
+
+        return OutcomeResult(
             run_id=report.run_id,
             campaign_type=ct,
-            decision=Decision.HUMAN_REVIEW,
-            passed=False,
-            effective_tier=self.effective_tier(self.state(ct)),
-            demoted=True,
-            demotion_reason=TransitionReason.DEMOTION_DELIVERABILITY,
+            breached=breached,
+            breaches=[b.metric for b in breach_list],
+            demoted=demoted,
+            blind_spot=blind_spot,
             state_after=self.state(ct),
-            rationale=[
-                "Post-send deliverability breach demoted the campaign type to Tier 0 "
-                "and opened PROBATION: " + "; ".join(b.message for b in breaches)
-            ],
         )
 
     def run_probation_challenge(

@@ -16,8 +16,12 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from autonomy_ladder.autonomy.controller import AutonomyController, ControllerDecision
-from autonomy_ladder.autonomy.ledger import Ledger
+from autonomy_ladder.autonomy.controller import (
+    AutonomyController,
+    ControllerDecision,
+    OutcomeResult,
+)
+from autonomy_ladder.autonomy.ledger import Ledger, OutcomeLogEntry
 from autonomy_ladder.config import (
     REPO_ROOT,
     BrandPolicy,
@@ -26,13 +30,20 @@ from autonomy_ladder.config import (
     load_brand_policy,
     load_tiers_config,
 )
-from autonomy_ladder.domain import CampaignType
+from autonomy_ladder.domain import CampaignType, Dimension, SegmentBand, Verdict
+from autonomy_ladder.outcomes.simulator import Scenario, simulate
 from autonomy_ladder.queue.store import ReviewQueue, queue_item_from_decision
-from autonomy_ladder.records import CampaignContent, RunEvaluation
+from autonomy_ladder.records import (
+    CampaignContent,
+    DeliverabilityReport,
+    DimensionResult,
+    RunEvaluation,
+)
 from autonomy_ladder.security import SecurityEventStore
 
 # Default send window for queued items (SPEC §5; see docs/open-questions.md OQ-5).
 DEFAULT_SEND_WINDOW = timedelta(hours=48)
+CANDIDATES_DIR = REPO_ROOT / "evals" / "candidates"
 
 
 class RunRecord(BaseModel):
@@ -201,8 +212,161 @@ class AutonomyService:
             "unclassified": unclassified,
         }
 
+    # ---- post-send loop (HANDOFF 2, ADR 0009) -------------------------------
+
+    def process_outcome(
+        self,
+        run_id: str,
+        campaign_type: CampaignType,
+        metrics: dict[str, float],
+        now: datetime | None = None,
+    ) -> OutcomeResult:
+        """Record a post-send outcome; demote + downgrade in-flight on a breach; and
+        flag an eval-passed-but-breached run into evals/candidates/ for triage."""
+        report = DeliverabilityReport(
+            run_id=run_id,
+            campaign_type=campaign_type.value,
+            spam_complaint_rate=metrics.get("spam_complaint_rate", 0.0),
+            unsubscribe_rate=metrics.get("unsubscribe_rate", 0.0),
+            bounce_rate=metrics.get("bounce_rate", 0.0),
+        )
+        result = self.controller.process_deliverability(report, now=now, metrics=metrics)
+        if result.demoted:
+            self.queue.downgrade_inflight(campaign_type.value)
+        if result.blind_spot:
+            self._flag_candidate(run_id, campaign_type, metrics, result.breaches)
+        return result
+
+    def _flag_candidate(
+        self,
+        run_id: str,
+        campaign_type: CampaignType,
+        metrics: dict[str, float],
+        breaches: list[str],
+    ) -> None:
+        """Write an eval_passed_outcome_failed run to evals/candidates/ (HANDOFF 2)."""
+        CANDIDATES_DIR.mkdir(parents=True, exist_ok=True)
+        record = self.runs.get(run_id)
+        scores = (
+            {d.value: r.score for d, r in record.evaluation.dimensions.items()} if record else {}
+        )
+        payload = {
+            "run_id": run_id,
+            "campaign_type": campaign_type.value,
+            "classification": "eval_passed_outcome_failed",
+            "note": "Passed every eval but breached deliverability — judge blind spot; "
+            "triage into the golden set.",
+            "scores": scores,
+            "content": json.loads(record.content.model_dump_json())
+            if record and record.content
+            else None,
+            "outcome_metrics": metrics,
+            "breaches": breaches,
+        }
+        (CANDIDATES_DIR / f"{run_id}.json").write_text(json.dumps(payload, indent=2) + "\n")
+
+    def run_simulation(
+        self,
+        campaign_type: CampaignType,
+        n: int,
+        scenario: Scenario = Scenario.NOMINAL,
+        now: datetime | None = None,
+        seed: int = 20260829,
+    ) -> dict[str, object]:
+        """Run N campaigns through the controller at current tier, simulate outcomes
+        for those that auto-sent, and apply confirmations/demotions (HANDOFF 2 A4)."""
+        now = now or datetime.now(UTC)
+        sent = breach_ct = demotions = blind_spots = 0
+        for i in range(n):
+            ts = now + timedelta(hours=25 * i)  # spaced so sends aren't rate-limited
+            run_id = f"sim-{campaign_type.value}-{seed}-{i}"
+            evaluation = _synthetic_evaluation(run_id, campaign_type)
+            decision = self.record_run(evaluation, now=ts)
+            if decision.decision.value != "auto_send":
+                continue
+            sent += 1
+            scores = {d: r.score for d, r in evaluation.dimensions.items()}
+            metrics = simulate(
+                run_id=run_id,
+                segment=evaluation.segment,
+                scores=scores,
+                scenario=scenario,
+                seed=seed,
+                drift=(i / max(1, n - 1)),
+            )
+            result = self.process_outcome(
+                run_id, campaign_type, metrics.as_ledger_metrics(), now=ts
+            )
+            if result.breached:
+                breach_ct += 1
+            if result.demoted:
+                demotions += 1
+            if result.blind_spot:
+                blind_spots += 1
+        return {
+            "campaign_type": campaign_type.value,
+            "scenario": scenario.value,
+            "auto_sent": sent,
+            "breaches": breach_ct,
+            "demotions": demotions,
+            "blind_spots": blind_spots,
+        }
+
+    def outcomes_summary(self) -> list[dict[str, object]]:
+        """Per campaign type: predicted quality vs actual outcomes (HANDOFF 2 A4)."""
+        entries = self.controller._ledger.all()
+        out: list[dict[str, object]] = []
+        for ct in CampaignType:
+            outcomes = [
+                e for e in entries if isinstance(e, OutcomeLogEntry) and e.campaign_type == ct
+            ]
+            if not outcomes:
+                continue
+            status = self.controller.promotion_status(ct)
+            n = len(outcomes)
+            breached = sum(1 for o in outcomes if o.breached)
+            row: dict[str, object] = {
+                "campaign_type": ct.value,
+                "sent": n,
+                "breaches": breached,
+                "blind_spots": sum(1 for o in outcomes if o.blind_spot),
+                "predicted_pass_rate": round(status.wilson_lower_bound, 3),
+                "actual_clean_rate": round((n - breached) / n, 3) if n else 0.0,
+                "timeline": [
+                    {
+                        "ts": o.ts,
+                        "breached": o.breached,
+                        "blind_spot": o.blind_spot,
+                        "spam": o.metrics.get("spam_complaint_rate", 0.0),
+                    }
+                    for o in outcomes[-20:]
+                ],
+            }
+            out.append(row)
+        return out
+
     def close(self) -> None:
         self.controller._ledger.close()
         self.queue.close()
         self.runs.close()
         self.security.close()
+
+
+def _synthetic_evaluation(run_id: str, campaign_type: CampaignType) -> RunEvaluation:
+    """A clean, passing evaluation targeting engaged_30d — used by the simulation so
+    the controller path is exercised without the LLM (the outcomes are what vary)."""
+
+    def dim(d: Dimension, score: float) -> DimensionResult:
+        return DimensionResult(dimension=d, score=score, verdict=Verdict.PASS)
+
+    return RunEvaluation(
+        run_id=run_id,
+        campaign_type=campaign_type.value,
+        segment=SegmentBand.ENGAGED_30D,
+        dimensions={
+            Dimension.SEGMENT_CORRECTNESS: dim(Dimension.SEGMENT_CORRECTNESS, 0.95),
+            Dimension.CLAIM_GROUNDEDNESS: dim(Dimension.CLAIM_GROUNDEDNESS, 0.93),
+            Dimension.BRAND_VOICE: dim(Dimension.BRAND_VOICE, 0.9),
+            Dimension.STRUCTURE_QUALITY: dim(Dimension.STRUCTURE_QUALITY, 0.85),
+        },
+    )

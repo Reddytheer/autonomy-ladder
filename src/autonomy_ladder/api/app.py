@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from autonomy_ladder.autonomy.ledger import TransitionLogEntry
 from autonomy_ladder.config import REPO_ROOT
 from autonomy_ladder.demo import seed_demo
+from autonomy_ladder.domain import CampaignType
 from autonomy_ladder.service import AutonomyService
 
 WEB_DIR = REPO_ROOT / "web"
@@ -87,6 +88,29 @@ def security() -> JSONResponse:
 def monitoring() -> JSONResponse:
     """M1: quality-failure origin ratio (HANDOFF)."""
     return JSONResponse(_service.m1_summary())
+
+
+@app.get("/api/outcomes")
+def outcomes() -> JSONResponse:
+    """Post-send outcomes: predicted quality vs actual deliverability (HANDOFF 2)."""
+    return JSONResponse(_service.outcomes_summary())
+
+
+class SimulateRequest(BaseModel):
+    campaign_type: str = "newsletter"
+    n: int = 8
+    scenario: str = "nominal"
+
+
+@app.post("/api/simulate")
+def simulate(req: SimulateRequest) -> JSONResponse:
+    """Run N campaigns and simulate their post-send outcomes (HANDOFF 2 A4)."""
+    from autonomy_ladder.outcomes.simulator import Scenario
+
+    summary = _service.run_simulation(
+        CampaignType(req.campaign_type), req.n, Scenario(req.scenario), now=_now()
+    )
+    return JSONResponse(summary)
 
 
 @app.get("/api/runs/{run_id}")

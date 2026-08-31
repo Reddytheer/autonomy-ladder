@@ -69,8 +69,8 @@ def test_deliverability_breach_demotes() -> None:
         bounce_rate=0.0,
     )
     d = c.process_deliverability(report)
-    assert d is not None and d.demoted is True
-    assert d.demotion_reason is TransitionReason.DEMOTION_DELIVERABILITY
+    assert d.breached is True and d.demoted is True
+    assert "spam_complaint_rate" in d.breaches
     assert c.state(CT).tier is Tier.ASSIST
     assert c.state(CT).standing is Standing.PROBATION
 
@@ -85,7 +85,8 @@ def test_deliverability_within_thresholds_is_a_noop() -> None:
         unsubscribe_rate=0.002,
         bounce_rate=0.004,
     )
-    assert c.process_deliverability(report) is None
+    d = c.process_deliverability(report)
+    assert d.breached is False and d.demoted is False
     assert c.state(CT).tier is Tier.BOUNDED
 
 

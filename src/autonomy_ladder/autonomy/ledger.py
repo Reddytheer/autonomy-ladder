@@ -99,7 +99,26 @@ class TransitionLogEntry(_BaseEntry):
     run_id: str | None = None
 
 
-LedgerEntry = Annotated[RunLogEntry | TransitionLogEntry, Field(discriminator="kind")]
+class OutcomeLogEntry(_BaseEntry):
+    """A post-send outcome for a previously-sent run (HANDOFF 2, ADR 0009).
+
+    The closed loop: real deliverability metrics recorded against the originating
+    run. A breach drives a demotion (recorded as a separate transition, same path as
+    a critical eval failure). ``blind_spot`` marks the highest-value case — a run
+    that passed every eval but breached anyway (eval_passed_outcome_failed).
+    """
+
+    kind: Literal["outcome"] = "outcome"
+    run_id: str
+    metrics: dict[str, float] = Field(default_factory=dict)
+    breached: bool = False
+    breaches: list[str] = Field(default_factory=list)
+    blind_spot: bool = False
+
+
+LedgerEntry = Annotated[
+    RunLogEntry | TransitionLogEntry | OutcomeLogEntry, Field(discriminator="kind")
+]
 _ENTRY_ADAPTER: TypeAdapter[LedgerEntry] = TypeAdapter(LedgerEntry)
 
 
@@ -218,6 +237,30 @@ class Ledger:
         self._insert(entry)
         return entry
 
+    def append_outcome(
+        self,
+        *,
+        campaign_type: CampaignType,
+        ts: str,
+        run_id: str,
+        metrics: dict[str, float],
+        breached: bool,
+        breaches: list[str] | None = None,
+        blind_spot: bool = False,
+    ) -> OutcomeLogEntry:
+        entry = OutcomeLogEntry(
+            seq=self._next_seq(),
+            ts=ts,
+            campaign_type=campaign_type,
+            run_id=run_id,
+            metrics=metrics,
+            breached=breached,
+            breaches=breaches or [],
+            blind_spot=blind_spot,
+        )
+        self._insert(entry)
+        return entry
+
     def all(self) -> list[LedgerEntry]:
         """Every entry in sequence order."""
         rows = self._conn.execute("SELECT payload FROM ledger ORDER BY seq").fetchall()
@@ -243,11 +286,16 @@ def reconstruct(entries: list[LedgerEntry], campaign_type: CampaignType) -> Tier
 
     Fold rules:
       * a ``run`` entry decrements an active cooldown by one (mechanical);
-      * a ``transition`` entry sets tier/standing/cooldown to the recorded values.
+      * a ``transition`` entry sets tier/standing/cooldown to the recorded values;
+      * an ``outcome`` entry records a post-send fact and does not itself change tier
+        state — any demotion it triggers is recorded as its own transition, so state
+        stays a pure fold of transitions (P4).
     """
     state = TierState.initial(campaign_type)
     for entry in entries:
         if entry.campaign_type != campaign_type:
+            continue
+        if isinstance(entry, OutcomeLogEntry):
             continue
         if isinstance(entry, RunLogEntry):
             if state.standing is Standing.ACTIVE and state.cooldown_remaining > 0:
