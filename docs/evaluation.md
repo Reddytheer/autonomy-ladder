@@ -48,7 +48,7 @@ the 46 human-labeled cases in `evals/calibration/calibration_labels.jsonl`. If Î
 hiding it.
 
 **Provenance (stated plainly).** Reference labels were authored by the maintainer,
-AI-drafted and reviewed case by case. Cases where the reviewer's verdict differed
+drafted and then reviewed case by case. Cases where the reviewer's verdict differed
 from the draft were removed from the golden set rather than retained, on the basis
 that a case two careful reviewers score differently is a rubric gap rather than
 ground truth. This is *reviewed labeling*, which is normal practice and defensible â€”

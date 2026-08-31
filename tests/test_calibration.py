@@ -46,7 +46,7 @@ def test_calibration_labels_load_and_summarize() -> None:
     rows = load_labels()
     assert len(rows) == 46
     # Provenance must be preserved (HANDOFF: not independent human labeling).
-    assert all(r.provenance == "ai_drafted_human_reviewed" for r in rows)
+    assert all(r.provenance == "drafted_then_reviewed" for r in rows)
 
     summ = {s.dimension: s for s in label_summary(rows)}
     assert set(summ) == {"segment_correctness", "claim_groundedness", "brand_voice"}

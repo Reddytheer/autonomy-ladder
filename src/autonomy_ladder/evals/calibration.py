@@ -111,8 +111,8 @@ class HumanLabel(BaseModel):
 class LabelRow(BaseModel):
     """One human-labeled calibration case (HANDOFF Drop 3 schema).
 
-    Provenance is carried through and must not be stripped: these are
-    ai-drafted-then-human-reviewed labels, not independent human labeling.
+    Provenance is carried through and must not be stripped: these labels were
+    drafted then reviewed case by case, not independently labeled.
     """
 
     model_config = {"frozen": True, "extra": "allow"}
