@@ -42,11 +42,15 @@ def _item(
 
 
 def test_classify_batch_vs_judgment() -> None:
-    assert classify_lane(_item("a")) is Lane.BATCH
+    # Judgment: critical failures, or serious constraint blocks (over-ceiling, never-auto).
     assert classify_lane(_item("b", criticals=[Dimension.CLAIM_GROUNDEDNESS])) is Lane.JUDGMENT
     assert classify_lane(_item("c", constraints=["discount_exceeds_ceiling"])) is Lane.JUDGMENT
-    assert classify_lane(_item("d", min_score=0.4)) is Lane.JUDGMENT  # low confidence
-    assert classify_lane(_item("e", brand_voice=0.6)) is Lane.JUDGMENT
+    assert classify_lane(_item("f", constraints=["never_autonomous_segment"])) is Lane.JUDGMENT
+    # Batch: clean, brand-voice-only slips, tier-boundary, and rate-limit blocks.
+    assert classify_lane(_item("a")) is Lane.BATCH
+    assert classify_lane(_item("e", brand_voice=0.6, min_score=0.4)) is Lane.BATCH
+    assert classify_lane(_item("g", constraints=["rate_limit_exceeded"])) is Lane.BATCH
+    assert classify_lane(_item("h", constraints=["segment_not_eligible_for_tier"])) is Lane.BATCH
 
 
 def test_risk_score_orders_critical_above_clean() -> None:
@@ -56,7 +60,7 @@ def test_risk_score_orders_critical_above_clean() -> None:
 
 
 def test_judgment_lane_sorted_by_risk_desc() -> None:
-    low = _item("low", constraints=["rate_limit_exceeded"])
+    low = _item("low", constraints=["discount_exceeds_ceiling"])
     high = _item("high", criticals=[Dimension.SEGMENT_CORRECTNESS, Dimension.CLAIM_GROUNDEDNESS])
     view = build_lanes([low, high], NOW)
     assert [d.item.run_id for d in view.judgment] == ["high", "low"]

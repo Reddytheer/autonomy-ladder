@@ -21,15 +21,17 @@ from datetime import UTC, datetime, timedelta
 from pydantic import BaseModel
 
 from autonomy_ladder.autonomy import constraints as C
+from autonomy_ladder.autonomy import routing
 from autonomy_ladder.autonomy.ledger import (
     Decision,
     Ledger,
+    OutcomeClass,
     RunLogEntry,
     TransitionReason,
     reconstruct,
 )
 from autonomy_ladder.autonomy.probation import evaluate_probation_challenge
-from autonomy_ladder.autonomy.tiers import Standing, Tier, TierState, can_autosend
+from autonomy_ladder.autonomy.tiers import Standing, Tier, TierState
 from autonomy_ladder.autonomy.wilson import wilson_lower_bound
 from autonomy_ladder.config import BrandPolicy, TiersConfig
 from autonomy_ladder.domain import CampaignType, Dimension
@@ -76,6 +78,7 @@ class ControllerDecision(BaseModel):
     campaign_type: CampaignType
     decision: Decision
     passed: bool
+    outcome: OutcomeClass = OutcomeClass.QUALITY_PASS
     effective_tier: Tier
     critical_failures: list[Dimension] = []
     blocked: list[C.ConstraintViolation] = []
@@ -112,8 +115,13 @@ class AutonomyController:
         """The tier that actually governs sends: earned tier capped by brand ceiling."""
         return Tier(min(state.tier, self._brand.max_allowed_tier))
 
-    def _window_runs(self, campaign_type: CampaignType, window: int) -> list[RunLogEntry]:
-        runs = [e for e in self._ledger.for_type(campaign_type) if isinstance(e, RunLogEntry)]
+    def _wilson_runs(self, campaign_type: CampaignType, window: int) -> list[RunLogEntry]:
+        """The last ``window`` Wilson-eligible runs (constraint blocks excluded, ADR 0008)."""
+        runs = [
+            e
+            for e in self._ledger.for_type(campaign_type)
+            if isinstance(e, RunLogEntry) and e.outcome is not OutcomeClass.CONSTRAINT_BLOCK
+        ]
         return runs[-window:]
 
     def _autonomous_sends_last_24h(self, campaign_type: CampaignType, now: datetime) -> int:
@@ -150,9 +158,9 @@ class AutonomyController:
         if next_tier is not None and not blocked_by_ceiling:
             gate = self._cfg.gate(int(state.tier), int(next_tier))
             window, min_runs, threshold = gate.window, gate.min_runs, gate.wilson_lower_bound_min
-            recent = self._window_runs(campaign_type, gate.window)
+            recent = self._wilson_runs(campaign_type, gate.window)
             runs_in_window = len(recent)
-            successes = sum(1 for r in recent if r.passed)
+            successes = sum(1 for r in recent if r.outcome is OutcomeClass.QUALITY_PASS)
             lower = wilson_lower_bound(successes, runs_in_window)
             runs_to_min = max(0, gate.min_runs - runs_in_window)
             gate_met = (
@@ -182,19 +190,24 @@ class AutonomyController:
     # ---- the main entry point ----------------------------------------------
 
     def process_run(
-        self, evaluation: RunEvaluation, now: datetime | None = None
+        self,
+        evaluation: RunEvaluation,
+        now: datetime | None = None,
+        failure_origin: str | None = None,
     ) -> ControllerDecision:
         """Decide what happens to one scored run, and update the ledger.
 
         Order of operations matters and is deliberate:
           1. read current state (from the ledger);
-          2. run the deterministic constraint checks;
-          3. decide AUTO_SEND vs HUMAN_REVIEW;
-          4. append the run fact;
-          5. if a CRITICAL dimension failed, demote + open probation;
-          6. otherwise, if the run passed and the Wilson gate is now cleared,
-             promote one step.
+          2. route the run (pure decision + outcome classification + lane);
+          3. append the run fact, tagged with its Wilson outcome class (ADR 0008);
+          4. if a CRITICAL dimension failed, demote + open probation;
+          5. otherwise, if the Wilson gate is now cleared, promote one step.
         Demotion and promotion are mutually exclusive for a single run.
+
+        ``failure_origin`` (M1) records, for a quality failure, whether the failing
+        behaviour was brief-instructed or agent-originated; it is supplied by the
+        pipeline (the controller cannot see the brief) and stored for monitoring.
         """
         now = now or self._clock()
         ts = _iso(now)
@@ -203,57 +216,58 @@ class AutonomyController:
         state = self.state(ct)
         eff = self.effective_tier(state)
 
-        # 2. deterministic constraints
-        violations: list[C.ConstraintViolation] = []
-        violations += C.check_segment_eligibility(eff, evaluation.segment)
-        violations += C.check_discount(evaluation.discount_pct, self._cfg.constraints)
-        violations += C.check_rate_limit(
-            self._autonomous_sends_last_24h(ct, now), self._cfg.constraints
+        # 2. pure routing: decision, Wilson outcome class, and lane.
+        result = routing.decide(
+            evaluation,
+            effective_tier=eff,
+            autonomous_sends_last_24h=self._autonomous_sends_last_24h(ct, now),
+            constraints=self._cfg.constraints,
         )
-
+        decision = result.decision
+        violations = result.violations
         passed = evaluation.passed
         critical_failures = evaluation.critical_failures
 
-        # 3. decision: auto-send only if the run passed, hit no constraint, and the
-        #    segment is autosendable at the effective tier. Anything else → review.
         rationale: list[str] = []
-        segment_ok = can_autosend(eff, evaluation.segment)
-        if passed and not violations and segment_ok:
-            decision = Decision.AUTO_SEND
+        if decision is Decision.AUTO_SEND:
             rationale.append(
                 f"Run passed and tier {eff.value} ({eff.name}) permits autonomous send "
                 f"to '{evaluation.segment.value}'."
             )
         else:
-            decision = Decision.HUMAN_REVIEW
-            if not passed:
-                if critical_failures:
-                    rationale.append(
-                        "Routed to review: CRITICAL failure in "
-                        + ", ".join(d.value for d in critical_failures)
-                        + "."
-                    )
-                else:
-                    rationale.append("Routed to review: run did not pass (brand_voice below 0.75).")
+            if not passed and critical_failures:
+                rationale.append(
+                    "Routed to review: CRITICAL failure in "
+                    + ", ".join(d.value for d in critical_failures)
+                    + "."
+                )
+            elif not passed:
+                rationale.append("Routed to review: run did not pass (brand_voice below 0.75).")
             for v in violations:
                 rationale.append(f"Routed to review: {v.message}")
-            if passed and not violations and not segment_ok:
+            if passed and not violations:
                 rationale.append(
                     f"Routed to review: tier {eff.value} ({eff.name}) may not autonomously "
                     f"send to '{evaluation.segment.value}'."
                 )
+        rationale.append(f"Wilson outcome: {result.outcome.value}.")
 
-        # 4. append the run fact
+        # M1: only tag origin on genuine quality failures.
+        origin = failure_origin if result.outcome is OutcomeClass.QUALITY_FAILURE else None
+
+        # 3. append the run fact, classified for the Wilson window.
         self._ledger.append_run(
             campaign_type=ct,
             ts=ts,
             run_id=evaluation.run_id,
             passed=passed,
             decision=decision,
+            outcome=result.outcome,
             tier_at_decision=eff,
             segment=evaluation.segment.value,
             discount_pct=evaluation.discount_pct,
-            blocked=[v.code.value for v in violations],
+            blocked=result.blocked_codes,
+            failure_origin=origin,
         )
 
         demoted = False
@@ -281,8 +295,8 @@ class AutonomyController:
                 "failure. In-flight campaigns of this type must be downgraded to review."
             )
 
-        # 6. promotion — only if we did not just demote
-        if not demoted and passed:
+        # 5. promotion — only if we did not just demote and this run was a success
+        if not demoted and result.is_success:
             promoted, promotion_to = self._maybe_promote(ct, ts, evaluation.run_id)
             if promoted and promotion_to is not None:
                 rationale.append(
@@ -295,6 +309,7 @@ class AutonomyController:
             campaign_type=ct,
             decision=decision,
             passed=passed,
+            outcome=result.outcome,
             effective_tier=eff,
             critical_failures=critical_failures,
             blocked=violations,
@@ -316,11 +331,11 @@ class AutonomyController:
             return False, None  # capped by brand ceiling — never promote past it
 
         gate = self._cfg.gate(int(state.tier), int(target))
-        recent = self._window_runs(ct, gate.window)
+        recent = self._wilson_runs(ct, gate.window)
         n = len(recent)
         if n < gate.min_runs:
             return False, None
-        successes = sum(1 for r in recent if r.passed)
+        successes = sum(1 for r in recent if r.outcome is OutcomeClass.QUALITY_PASS)
         lower = wilson_lower_bound(successes, n)
         if lower <= gate.wilson_lower_bound_min:
             return False, None

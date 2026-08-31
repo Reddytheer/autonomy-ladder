@@ -1,8 +1,0 @@
-{
-  "model": "claude-sonnet-4-6",
-  "request": {
-    "system": "You are an email structure reviewer. You are advisory and lenient.",
-    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: Something new is coming\nCTA: Shop now -> https://northbay.example.com/shop\nBody: A teaser for our next release. Details soon.\nRespond with ONLY a JSON object, no prose or code fences, of the form: {\"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\", \"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...]}."
-  },
-  "response": "{\"score\": 0.65, \"verdict\": \"pass\", \"reasoning\": \"seed fixture (synthetic; regenerate with make fixtures)\", \"evidence\": []}"
-}

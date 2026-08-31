@@ -1,8 +1,0 @@
-{
-  "model": "claude-sonnet-4-6",
-  "request": {
-    "system": "You are the brand sentinel, guarding a distinctive brand voice.",
-    "user": "Judge whether the copy matches the brand voice.\nVoice guidelines: ['Write plainly and specifically; name the feature and what it does.', \"Lead with the customer's trip, not the product's ego.\", 'Prefer concrete numbers (weight, capacity, ratings) over adjectives.', \"Respect the reader's experience; assume they know the outdoors.\", 'Be honest about limits \u2014 say what the gear is not built for.', 'One clear call to action per message.']\nTone descriptors: ['grounded', 'practical', 'warm', 'understated', 'trail-tested', 'unpretentious']\nTerms to avoid: ['guaranteed', 'miracle', 'risk-free', 'best ever', 'cure', '100% safe', 'unbreakable', 'lifetime warranty', 'revolutionary', \"world's best\", 'bulletproof']\nSubject: 15% off shelters this week\nPreview: 15% off shelters this week\nBody: Take 15% off select tents. The Basecamp Dome handles the wet stuff.\nScore 0-1; a score below 0.75 is a fail.\nRespond with ONLY a JSON object, no prose or code fences, of the form: {\"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\", \"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...]}."
-  },
-  "response": "{\"score\": 0.9, \"verdict\": \"pass\", \"reasoning\": \"seed fixture (synthetic; regenerate with make fixtures)\", \"evidence\": []}"
-}

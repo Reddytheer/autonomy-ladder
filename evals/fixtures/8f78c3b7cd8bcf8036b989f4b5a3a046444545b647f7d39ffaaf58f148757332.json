@@ -1,8 +1,0 @@
-{
-  "model": "claude-sonnet-4-6",
-  "request": {
-    "system": "You are a meticulous audience-targeting reviewer for an email marketing team.",
-    "user": "Decide whether the campaign targets the correct audience segment.\nRequested segment (from the brief): engaged_30d\nSegment the campaign targets: engaged_30d\nCampaign type: newsletter\nSubject: Trail-ready picks for your next weekend out\nFail if the targeted segment does not match the requested one, or if the copy is clearly written for a different audience than the one targeted.\nRespond with ONLY a JSON object, no prose or code fences, of the form: {\"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\", \"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...]}."
-  },
-  "response": "{\"score\": 0.95, \"verdict\": \"pass\", \"reasoning\": \"seed fixture (synthetic; regenerate with make fixtures)\", \"evidence\": []}"
-}

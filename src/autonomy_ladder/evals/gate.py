@@ -1,12 +1,16 @@
-"""The regression gate (SPEC §7).
+"""The regression gate (SPEC §7, updated by HANDOFF Drop 1 + the constraint_block change).
 
-``make eval`` runs the golden set off cached fixtures and prints a results table.
-``make gate`` does the same and exits non-zero if any dimension's verdict accuracy
-has regressed beyond tolerance versus ``evals/baseline.json`` — wired into CI so a
-prompt change that quietly degrades quality cannot merge.
+Keyless mode is a DETERMINISTIC decision-routing eval: for each of the 75 golden
+cases we take the authored dimension verdicts as given, build the run evaluation,
+and replay it through the pure controller routing (:mod:`autonomy_ladder.autonomy.routing`).
+We then check the resulting decision and review lane match what the case authored.
+No LLM, no API key — this validates the controller/constraint/lane logic (including
+the constraint_block change) against Theertha's hand-labeled expectations.
 
-All of the above run with NO API key (they replay committed fixtures). ``--record``
-is the only mode that calls the API, to (re)generate those fixtures.
+* ``make eval``  → print the routing table.
+* ``make gate``  → exit non-zero if routing accuracy regressed vs evals/baseline.json.
+* ``--record``   → (step 11, needs a key) run the briefs through the live pipeline
+  to cache real judge responses for the separate judge-accuracy measurement.
 """
 
 from __future__ import annotations
@@ -18,166 +22,134 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from autonomy_ladder.config import REPO_ROOT
-from autonomy_ladder.data.loaders import catalog_index, load_brand_rules
-from autonomy_ladder.domain import Dimension
-from autonomy_ladder.evals.golden_loader import GoldenCase, load_goldens
-from autonomy_ladder.evals.judges import build_prompt, judge_all, model_for
-from autonomy_ladder.evals.llm import (
-    FixtureStore,
-    LLMClient,
-    MissingFixtureError,
-    RecordingClient,
-    ReplayClient,
-    prompt_hash,
-)
-from autonomy_ladder.records import DimensionResult
+from autonomy_ladder.autonomy import routing
+from autonomy_ladder.autonomy.ledger import Decision
+from autonomy_ladder.autonomy.tiers import Tier
+from autonomy_ladder.config import REPO_ROOT, load_tiers_config
+from autonomy_ladder.domain import Dimension, Verdict
+from autonomy_ladder.evals.golden_loader import ExpectedDecision, GoldenCase, load_goldens
+from autonomy_ladder.records import DimensionResult, RunEvaluation
 
 BASELINE_PATH = REPO_ROOT / "evals" / "baseline.json"
-DEFAULT_TOLERANCE = 0.05
+DEFAULT_TOLERANCE = 0.02
+
+# Map the controller's decision enum onto the goldens' vocabulary.
+_DECISION_TO_EXPECTED = {
+    Decision.AUTO_SEND: ExpectedDecision.AUTO_SEND,
+    Decision.HUMAN_REVIEW: ExpectedDecision.REVIEW_QUEUE,
+}
 
 
-class DimensionScore(BaseModel):
+def _evaluation_from_case(case: GoldenCase) -> RunEvaluation:
+    """Build a RunEvaluation whose verdicts/scores encode the case's expectations."""
+    v = case.expected
+
+    def dim(d: Dimension, verdict: Verdict) -> DimensionResult:
+        score = 0.9 if verdict is Verdict.PASS else (0.5 if d is Dimension.BRAND_VOICE else 0.1)
+        return DimensionResult(dimension=d, score=score, verdict=verdict)
+
+    dims = {
+        Dimension.SEGMENT_CORRECTNESS: dim(Dimension.SEGMENT_CORRECTNESS, v.segment_correctness),
+        Dimension.CLAIM_GROUNDEDNESS: dim(Dimension.CLAIM_GROUNDEDNESS, v.claim_groundedness),
+        Dimension.BRAND_VOICE: dim(Dimension.BRAND_VOICE, v.brand_voice),
+        Dimension.STRUCTURE_QUALITY: dim(Dimension.STRUCTURE_QUALITY, Verdict.PASS),
+    }
+    return RunEvaluation(
+        run_id=case.id,
+        campaign_type=case.campaign_type.value,
+        segment=case.requested_segment,
+        discount_pct=case.discount_pct,
+        dimensions=dims,
+    )
+
+
+class CaseResult(BaseModel):
     model_config = {"frozen": True}
 
-    dimension: Dimension
-    n: int
-    accuracy: float  # fraction of cases where the judge verdict matched the gold verdict
-    mean_score: float
-
-
-class GateResult(BaseModel):
-    model_config = {"frozen": True}
-
-    per_dimension: list[DimensionScore]
-    regressions: list[str]
-    missing_fixtures: int
+    id: str
+    tests_layer: str
+    decision_ok: bool
+    lane_ok: bool
 
     @property
     def ok(self) -> bool:
-        return not self.regressions and self.missing_fixtures == 0
+        return self.decision_ok and self.lane_ok
 
 
-def _context(case: GoldenCase):  # type: ignore[no-untyped-def]
-    from autonomy_ladder.evals.judges import JudgeContext
+class RoutingReport(BaseModel):
+    model_config = {"frozen": True}
 
-    return JudgeContext(brief=case.brief, brand_rules=load_brand_rules(), catalog=catalog_index())
+    n: int
+    accuracy: float
+    decision_accuracy: float
+    lane_accuracy: float
+    mismatches: list[str]
+    regressions: list[str] = []
+
+    @property
+    def ok(self) -> bool:
+        return not self.regressions
 
 
-def evaluate_goldens(cases: list[GoldenCase], client: LLMClient) -> tuple[GateResult, int]:
-    """Run judges over every golden case and aggregate per-dimension accuracy."""
-    correct: dict[Dimension, int] = dict.fromkeys(Dimension, 0)
-    total: dict[Dimension, int] = dict.fromkeys(Dimension, 0)
-    score_sum: dict[Dimension, float] = dict.fromkeys(Dimension, 0.0)
-    missing = 0
+def evaluate_routing(cases: list[GoldenCase]) -> RoutingReport:
+    """Replay every golden through the pure routing and score decision + lane."""
+    constraints = load_tiers_config().constraints
+    results: list[CaseResult] = []
+    mismatches: list[str] = []
 
     for case in cases:
-        ctx = _context(case)
-        try:
-            results: dict[Dimension, DimensionResult] = judge_all(case.content, ctx, client)
-        except MissingFixtureError:
-            missing += 1
-            continue
-        for dim, expected in case.expected.items():
-            res = results[dim]
-            total[dim] += 1
-            score_sum[dim] += res.score
-            if res.verdict == expected.verdict:
-                correct[dim] += 1
-
-    per_dim = [
-        DimensionScore(
-            dimension=dim,
-            n=total[dim],
-            accuracy=(correct[dim] / total[dim]) if total[dim] else 0.0,
-            mean_score=(score_sum[dim] / total[dim]) if total[dim] else 0.0,
+        evaluation = _evaluation_from_case(case)
+        # Rate-limit cases are stateful; the golden encodes the context via its layer.
+        sends_24h = 3 if case.tests_layer == "controller:rate_limit" else 0
+        result = routing.decide(
+            evaluation,
+            effective_tier=Tier(case.agent_tier_at_run),
+            autonomous_sends_last_24h=sends_24h,
+            constraints=constraints,
         )
-        for dim in Dimension
-        if total[dim] > 0
-    ]
-    return GateResult(per_dimension=per_dim, regressions=[], missing_fixtures=missing), missing
+        got_decision = _DECISION_TO_EXPECTED[result.decision]
+        got_lane = result.lane.value if result.lane is not None else None
+        want_lane = case.expected_lane.value if case.expected_lane is not None else None
+        decision_ok = got_decision is case.expected_decision
+        lane_ok = got_lane == want_lane
+        results.append(
+            CaseResult(
+                id=case.id, tests_layer=case.tests_layer, decision_ok=decision_ok, lane_ok=lane_ok
+            )
+        )
+        if not (decision_ok and lane_ok):
+            mismatches.append(
+                f"{case.id}: decision {got_decision.value}/{case.expected_decision.value} "
+                f"lane {got_lane}/{want_lane}"
+            )
+
+    n = len(results)
+    return RoutingReport(
+        n=n,
+        accuracy=sum(r.ok for r in results) / n if n else 0.0,
+        decision_accuracy=sum(r.decision_ok for r in results) / n if n else 0.0,
+        lane_accuracy=sum(r.lane_ok for r in results) / n if n else 0.0,
+        mismatches=mismatches,
+    )
 
 
 def load_baseline(path: Path = BASELINE_PATH) -> dict[str, float]:
     if not path.exists():
         return {}
-    data = json.loads(path.read_text())
-    dims: dict[str, dict[str, float]] = data.get("dimensions", {})
-    return {k: v["accuracy"] for k, v in dims.items()}
+    data: dict[str, float] = json.loads(path.read_text())
+    return data
 
 
-def check_against_baseline(
-    result: GateResult, baseline: dict[str, float], tolerance: float
-) -> GateResult:
-    regressions: list[str] = []
-    for ds in result.per_dimension:
-        base = baseline.get(ds.dimension.value)
-        if base is not None and ds.accuracy < base - tolerance:
-            regressions.append(
-                f"{ds.dimension.value}: accuracy {ds.accuracy:.3f} < baseline {base:.3f} "
-                f"- tol {tolerance:.2f}"
-            )
-    return result.model_copy(update={"regressions": regressions})
-
-
-def _print_report(result: GateResult, baseline: dict[str, float]) -> None:
-    print(f"{'dimension':<22}{'n':>4}{'accuracy':>11}{'mean_score':>12}{'baseline':>10}")
-    print("-" * 59)
-    for ds in result.per_dimension:
-        base = baseline.get(ds.dimension.value)
-        base_s = f"{base:.3f}" if base is not None else "  —"
-        print(
-            f"{ds.dimension.value:<22}{ds.n:>4}{ds.accuracy:>11.3f}"
-            f"{ds.mean_score:>12.3f}{base_s:>10}"
-        )
-    if result.missing_fixtures:
-        print(f"\n! {result.missing_fixtures} case(s) had no cached fixture (run `make fixtures`).")
-
-
-def seed_synthetic_fixtures(cases: list[GoldenCase], store: FixtureStore | None = None) -> int:
-    """Bootstrap placeholder fixtures from the goldens' authored expectations.
-
-    These let `make eval`/`make gate` run keyless before any live recording. They
-    are clearly synthetic — regenerate real ones with `make fixtures`. Returns the
-    number of fixture files written.
-    """
-    store = store or FixtureStore()
-    written = 0
-    for case in cases:
-        ctx = _context(case)
-        for dim, expected in case.expected.items():
-            system, user = build_prompt(dim, case.content, ctx)
-            model = model_for(dim)
-            response = json.dumps(
-                {
-                    "score": expected.score,
-                    "verdict": expected.verdict.value,
-                    "reasoning": "seed fixture (synthetic; regenerate with make fixtures)",
-                    "evidence": [],
-                }
-            )
-            store.put(
-                prompt_hash(model, system, user),
-                model=model,
-                system=system,
-                user=user,
-                response=response,
-            )
-            written += 1
-    return written
-
-
-def write_baseline(
-    result: GateResult, path: Path = BASELINE_PATH, tolerance: float = DEFAULT_TOLERANCE
-) -> None:
+def write_baseline(report: RoutingReport, path: Path = BASELINE_PATH) -> None:
     path.write_text(
         json.dumps(
             {
-                "tolerance": tolerance,
-                "dimensions": {
-                    ds.dimension.value: {"accuracy": round(ds.accuracy, 4), "n": ds.n}
-                    for ds in result.per_dimension
-                },
+                "kind": "routing_accuracy",
+                "n": report.n,
+                "accuracy": round(report.accuracy, 4),
+                "decision_accuracy": round(report.decision_accuracy, 4),
+                "lane_accuracy": round(report.lane_accuracy, 4),
+                "tolerance": DEFAULT_TOLERANCE,
             },
             indent=2,
         )
@@ -185,58 +157,81 @@ def write_baseline(
     )
 
 
+def check_against_baseline(
+    report: RoutingReport, baseline: dict[str, float], tolerance: float
+) -> RoutingReport:
+    regressions: list[str] = []
+    base = baseline.get("accuracy")
+    if base is not None and report.accuracy < base - tolerance:
+        regressions.append(
+            f"routing accuracy {report.accuracy:.3f} < baseline {base:.3f} - tol {tolerance:.2f}"
+        )
+    return report.model_copy(update={"regressions": regressions})
+
+
+def _print(report: RoutingReport, baseline: dict[str, float]) -> None:
+    base = baseline.get("accuracy")
+    print(f"golden routing eval — {report.n} cases (keyless, deterministic)")
+    print(f"  decision accuracy : {report.decision_accuracy:.3f}")
+    print(f"  lane accuracy     : {report.lane_accuracy:.3f}")
+    print(
+        f"  overall accuracy  : {report.accuracy:.3f}"
+        + (f"  (baseline {base:.3f})" if base else "")
+    )
+    for m in report.mismatches:
+        print(f"  mismatch: {m}")
+
+
+def _record() -> int:
+    """Step 11 (needs a key): run briefs through the live pipeline to cache judge
+    responses for the judge-accuracy measurement. Deferred in the keyless build."""
+    print(
+        "make fixtures / --record runs the live pipeline over the golden briefs and "
+        "requires ANTHROPIC_API_KEY (step 11). It is intentionally not run in the "
+        "keyless build; see docs/evaluation.md.",
+        file=sys.stderr,
+    )
+    return 2
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="autonomy-ladder eval / regression gate")
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--report", action="store_true", help="run goldens and print a table (keyless)"
-    )
-    mode.add_argument(
-        "--check", action="store_true", help="fail on regression vs baseline (keyless)"
-    )
-    mode.add_argument("--record", action="store_true", help="record real fixtures (needs API key)")
-    mode.add_argument(
-        "--seed-synthetic",
-        action="store_true",
-        help="write placeholder fixtures + baseline (bootstrap)",
-    )
-    parser.add_argument("--tolerance", type=float, default=None)
+    mode.add_argument("--report", action="store_true", help="print the routing table (keyless)")
+    mode.add_argument("--check", action="store_true", help="fail on routing regression (keyless)")
+    mode.add_argument("--record", action="store_true", help="record live judge fixtures (step 11)")
+    mode.add_argument("--update-baseline", action="store_true", help="rewrite evals/baseline.json")
+    parser.add_argument("--tolerance", type=float, default=DEFAULT_TOLERANCE)
     args = parser.parse_args(argv)
+
+    if args.record:
+        return _record()
 
     cases = load_goldens()
     if not cases:
         print("No golden cases found in evals/goldens/.", file=sys.stderr)
         return 1
 
-    if args.seed_synthetic:
-        n = seed_synthetic_fixtures(cases)
-        result, _ = evaluate_goldens(cases, ReplayClient())
-        write_baseline(result, tolerance=args.tolerance or DEFAULT_TOLERANCE)
-        print(f"Seeded {n} synthetic fixtures and wrote baseline for {len(cases)} cases.")
+    report = evaluate_routing(cases)
+
+    if args.update_baseline:
+        write_baseline(report)
+        print(f"Wrote baseline for {report.n} cases: accuracy {report.accuracy:.4f}.")
         return 0
 
-    client: LLMClient = RecordingClient() if args.record else ReplayClient()
-    result, _ = evaluate_goldens(cases, client)
     baseline = load_baseline()
-    tolerance = args.tolerance if args.tolerance is not None else DEFAULT_TOLERANCE
+    if args.check:
+        report = check_against_baseline(report, baseline, args.tolerance)
+
+    _print(report, baseline)
 
     if args.check:
-        result = check_against_baseline(result, baseline, tolerance)
-
-    _print_report(result, baseline)
-
-    if args.record:
-        print(f"\nRecorded fixtures for {len(cases)} cases.")
-        return 0
-
-    if args.check:
-        if result.regressions:
+        if report.regressions:
             print("\nREGRESSIONS:", file=sys.stderr)
-            for r in result.regressions:
+            for r in report.regressions:
                 print(f"  - {r}", file=sys.stderr)
-        if not result.ok:
             return 1
-        print("\nGate passed: no regressions.")
+        print("\nGate passed: no routing regressions.")
     return 0
 
 

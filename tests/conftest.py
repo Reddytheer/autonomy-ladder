@@ -7,7 +7,8 @@ time. No test here touches an LLM or the network.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -48,14 +49,29 @@ def make_tiers_config() -> TiersConfig:
     )
 
 
-def make_controller(max_allowed_tier: int = 2) -> AutonomyController:
-    """A controller over a fresh in-memory ledger with a fixed clock."""
+def advancing_clock(step_hours: int = 25) -> Callable[[], datetime]:
+    """A clock that jumps forward each call, so successive auto-sends land in
+    separate 24h windows and never trip the rate limit (which now excludes runs
+    from the Wilson window). Used by high-volume promotion tests."""
+    state = {"n": -1}
+
+    def _clock() -> datetime:
+        state["n"] += 1
+        return datetime(2026, 1, 1, tzinfo=UTC) + timedelta(hours=step_hours * state["n"])
+
+    return _clock
+
+
+def make_controller(
+    max_allowed_tier: int = 2, clock: Callable[[], datetime] | None = None
+) -> AutonomyController:
+    """A controller over a fresh in-memory ledger. Fixed clock unless one is given."""
     ledger = Ledger(":memory:")
     return AutonomyController(
         ledger=ledger,
         tiers_config=make_tiers_config(),
         brand_policy=BrandPolicy(max_allowed_tier=max_allowed_tier),
-        clock=lambda: datetime(2026, 1, 1, tzinfo=UTC),
+        clock=clock or (lambda: datetime(2026, 1, 1, tzinfo=UTC)),
     )
 
 

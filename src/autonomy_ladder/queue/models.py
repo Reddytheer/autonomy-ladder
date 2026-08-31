@@ -11,14 +11,16 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from autonomy_ladder.autonomy.routing import Lane  # single source of the lane enum
 from autonomy_ladder.domain import CampaignType, Dimension, SegmentBand
 
-
-class Lane(StrEnum):
-    """The two review lanes (SPEC §5)."""
-
-    BATCH = "batch"  # no critical flag, brand_voice >= 0.75, confident — approve as a group
-    JUDGMENT = "judgment"  # critical flag, low confidence, or a constraint violation
+__all__ = [
+    "Lane",
+    "ItemStatus",
+    "QueueItem",
+    "DecoratedItem",
+    "LanesView",
+]
 
 
 class ItemStatus(StrEnum):

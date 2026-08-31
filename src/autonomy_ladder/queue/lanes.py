@@ -15,23 +15,31 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from autonomy_ladder.domain import BRAND_VOICE_PASS_THRESHOLD
+from autonomy_ladder.autonomy.constraints import ConstraintCode
 from autonomy_ladder.queue.models import DecoratedItem, Lane, LanesView, QueueItem
 from autonomy_ladder.queue.risk_score import compute_risk_score
 from autonomy_ladder.queue.sla import compute_sla
 
-# A weakest-dimension score below this routes an otherwise-clean item to judgment:
-# "low confidence" belongs with a human even when nothing hard-failed (SPEC §5).
-LOW_CONFIDENCE_THRESHOLD = 0.60
+# Constraint blocks serious enough for judgment; the rest (tier boundary, rate
+# limit) batch. Kept in lockstep with autonomy.routing so the queue and the
+# controller agree on lanes (validated against the golden set's expected_lane).
+_JUDGMENT_CODES = {
+    ConstraintCode.DISCOUNT_EXCEEDS_CEILING.value,
+    ConstraintCode.NEVER_AUTONOMOUS_SEGMENT.value,
+}
 
 
 def classify_lane(item: QueueItem) -> Lane:
-    """Batch only if nothing critical, brand-voice passes, and we are confident."""
-    if item.has_critical_flag or item.has_constraint_violation:
+    """Judgment for critical failures and serious constraint blocks; batch otherwise.
+
+    A brand-voice-only failure, a tier-boundary block, and a rate-limit block are
+    all mild enough to review as a group (batch). A CRITICAL dimension failure
+    (segment/claim), a discount over the ceiling, or a never-autonomous segment
+    demands individual judgment. Matches the golden set's expected_lane.
+    """
+    if item.has_critical_flag:
         return Lane.JUDGMENT
-    if item.min_dimension_score < LOW_CONFIDENCE_THRESHOLD:
-        return Lane.JUDGMENT
-    if item.brand_voice_score < BRAND_VOICE_PASS_THRESHOLD:
+    if any(code in _JUDGMENT_CODES for code in item.constraint_codes):
         return Lane.JUDGMENT
     return Lane.BATCH
 

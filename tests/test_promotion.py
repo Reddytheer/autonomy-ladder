@@ -122,7 +122,11 @@ def test_brand_ceiling_caps_promotion() -> None:
 
 def test_one_to_two_requires_the_higher_bar() -> None:
     """1->2 needs Wilson lower > 0.92 over >= 50 runs; a perfect record gets there."""
-    c = make_controller()
+    from .conftest import advancing_clock
+
+    # Advancing clock so the many auto-sends at Tier 1 aren't rate-limited (which
+    # would exclude them from the Wilson window under ADR 0008).
+    c = make_controller(clock=advancing_clock())
     for _ in range(25):
         c.process_run(make_eval(passed=True, campaign_type=CT))
     assert c.state(CT).tier is Tier.BOUNDED

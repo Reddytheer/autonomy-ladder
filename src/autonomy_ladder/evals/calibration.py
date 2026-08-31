@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from autonomy_ladder.config import REPO_ROOT
 from autonomy_ladder.domain import Verdict
 
-HUMAN_LABELS_PATH = REPO_ROOT / "evals" / "calibration" / "human_labels.jsonl"
+HUMAN_LABELS_PATH = REPO_ROOT / "evals" / "calibration" / "calibration_labels.jsonl"
 
 # Threshold below which a judge is considered poorly calibrated (SPEC §7).
 KAPPA_MIN = 0.60
@@ -92,16 +92,38 @@ def calibrate(
     return results
 
 
-class LabelRow(BaseModel):
-    """One human-labeled calibration row (SPEC §7)."""
+# A dimension with fewer than this many failure labels yields a directional, not
+# precise, kappa — one disagreement moves it materially (HANDOFF Drop 3 caveat).
+MIN_FAILURES_FOR_STABLE_KAPPA = 8
 
+# The three graded dimensions (structure_quality is advisory and not labeled).
+_GRADED = ("segment_correctness", "claim_groundedness", "brand_voice")
+
+
+class HumanLabel(BaseModel):
     model_config = {"frozen": True}
 
+    segment_correctness: Verdict
+    claim_groundedness: Verdict
+    brand_voice: Verdict
+
+
+class LabelRow(BaseModel):
+    """One human-labeled calibration case (HANDOFF Drop 3 schema).
+
+    Provenance is carried through and must not be stripped: these are
+    ai-drafted-then-human-reviewed labels, not independent human labeling.
+    """
+
+    model_config = {"frozen": True, "extra": "allow"}
+
     id: str
-    dimension: str
-    human_verdict: Verdict
-    model_verdict: Verdict
+    campaign_type: str
+    band: str
+    human_label: HumanLabel
+    labeler_confidence: str = ""
     critique: str = ""
+    provenance: str = ""
 
 
 def load_labels(path: Path = HUMAN_LABELS_PATH) -> list[LabelRow]:
@@ -112,24 +134,56 @@ def load_labels(path: Path = HUMAN_LABELS_PATH) -> list[LabelRow]:
     ]
 
 
-def calibrate_from_labels(rows: list[LabelRow]) -> list[DimensionCalibration]:
-    """Group rows by dimension and compute per-dimension calibration."""
-    human: dict[str, list[Verdict]] = {}
-    judge: dict[str, list[Verdict]] = {}
+def human_verdicts_by_dimension(rows: list[LabelRow]) -> dict[str, list[Verdict]]:
+    """The human verdict for each graded dimension, in case order."""
+    out: dict[str, list[Verdict]] = {d: [] for d in _GRADED}
     for r in rows:
-        human.setdefault(r.dimension, []).append(r.human_verdict)
-        judge.setdefault(r.dimension, []).append(r.model_verdict)
-    return calibrate(judge, human)
+        out["segment_correctness"].append(r.human_label.segment_correctness)
+        out["claim_groundedness"].append(r.human_label.claim_groundedness)
+        out["brand_voice"].append(r.human_label.brand_voice)
+    return out
+
+
+class DimensionLabelSummary(BaseModel):
+    model_config = {"frozen": True}
+
+    dimension: str
+    n: int
+    failures: int
+    stable_sample: bool
+
+
+def label_summary(rows: list[LabelRow]) -> list[DimensionLabelSummary]:
+    """Per-dimension label counts and whether the sample is big enough for a
+    stable kappa (the kappa itself needs recorded judge verdicts — step 12)."""
+    human = human_verdicts_by_dimension(rows)
+    summaries = []
+    for d in _GRADED:
+        fails = sum(1 for v in human[d] if v is Verdict.FAIL)
+        summaries.append(
+            DimensionLabelSummary(
+                dimension=d,
+                n=len(human[d]),
+                failures=fails,
+                stable_sample=fails >= MIN_FAILURES_FOR_STABLE_KAPPA,
+            )
+        )
+    return summaries
 
 
 def main(argv: list[str] | None = None) -> int:
     rows = load_labels()
-    report = calibrate_from_labels(rows)
-    print(f"{'dimension':<22}{'n':>4}{'kappa':>9}{'agreement':>11}{'calibrated':>12}")
-    print("-" * 58)
-    for c in report:
-        flag = "yes" if c.well_calibrated else "NO (<0.6)"
-        print(f"{c.dimension:<22}{c.n:>4}{c.kappa:>9.3f}{c.agreement:>11.3f}{flag:>12}")
+    summaries = label_summary(rows)
+    print(f"calibration label set — {len(rows)} cases ({rows[0].provenance if rows else 'n/a'})")
+    print(f"{'dimension':<22}{'n':>4}{'failures':>10}{'kappa':>16}")
+    print("-" * 52)
+    for s in summaries:
+        caveat = "" if s.stable_sample else "  (few failures: directional)"
+        print(f"{s.dimension:<22}{s.n:>4}{s.failures:>10}{'pending (step 12)':>16}{caveat}")
+    print(
+        "\nCohen's kappa is computed against recorded judge verdicts (make fixtures, "
+        "step 12). See cohen_kappa()/calibrate() for the math; docs/evaluation.md for the plan."
+    )
     return 0
 
 

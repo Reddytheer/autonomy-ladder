@@ -131,7 +131,11 @@ def test_cannot_run_probation_when_not_on_probation() -> None:
 def test_cooldown_blocks_promotion_until_it_elapses() -> None:
     """Even with a gate-clearing history, promotion is blocked for the whole
     cooldown window, then fires exactly when cooldown reaches zero (SPEC §4)."""
-    c = make_controller()
+    from .conftest import advancing_clock
+
+    # Advancing clock so the cooldown-period auto-sends aren't rate-limited (which
+    # would exclude them from the Wilson window under ADR 0008).
+    c = make_controller(clock=advancing_clock())
     lg: Ledger = c._ledger
     old = datetime(2025, 12, 1, tzinfo=UTC).isoformat()
     # A rich passing history that would clear the 1->2 gate (>=50 runs, all pass).

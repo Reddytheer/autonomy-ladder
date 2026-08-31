@@ -6,8 +6,9 @@ import pytest
 
 from autonomy_ladder.domain import Verdict
 from autonomy_ladder.evals.calibration import (
-    calibrate_from_labels,
     cohen_kappa,
+    human_verdicts_by_dimension,
+    label_summary,
     load_labels,
 )
 
@@ -41,15 +42,25 @@ def test_length_mismatch_raises() -> None:
         cohen_kappa([P], [P, F])
 
 
-def test_calibration_report_from_committed_labels() -> None:
+def test_calibration_labels_load_and_summarize() -> None:
     rows = load_labels()
-    assert len(rows) == 40
-    report = calibrate_from_labels(rows)
-    dims = {c.dimension for c in report}
-    assert dims == {
-        "segment_correctness",
-        "claim_groundedness",
-        "brand_voice",
-        "structure_quality",
-    }
-    assert all(0 <= c.kappa <= 1 for c in report)
+    assert len(rows) == 46
+    # Provenance must be preserved (HANDOFF: not independent human labeling).
+    assert all(r.provenance == "ai_drafted_human_reviewed" for r in rows)
+
+    summ = {s.dimension: s for s in label_summary(rows)}
+    assert set(summ) == {"segment_correctness", "claim_groundedness", "brand_voice"}
+    # HANDOFF failure counts: segment 5, claim 17, brand 7.
+    assert summ["segment_correctness"].failures == 5
+    assert summ["claim_groundedness"].failures == 17
+    assert summ["brand_voice"].failures == 7
+    # segment_correctness has too few failures for a stable kappa — must be flagged.
+    assert summ["segment_correctness"].stable_sample is False
+
+
+def test_kappa_over_human_verdicts_is_computable() -> None:
+    """cohen_kappa works on the loaded human labels vs a perfect stand-in rater."""
+    rows = load_labels()
+    human = human_verdicts_by_dimension(rows)
+    for dim, verdicts in human.items():
+        assert cohen_kappa(verdicts, verdicts) == 1.0, dim

@@ -1,8 +1,0 @@
-{
-  "model": "claude-haiku-4-5-20251001",
-  "request": {
-    "system": "You are a strict claim verifier. You only trust the catalog facts given to you.",
-    "user": "Verify every factual claim in the campaign is grounded in the catalog facts. Fail if any claim is unsupported, exaggerated, or contradicts the facts.\nCatalog facts:\n(no catalog products referenced)\n\nClaims to verify:\n(no explicit claims)\n\nBody: Some seasonal thoughts and a couple of picks. Nothing pushy here.\nRespond with ONLY a JSON object, no prose or code fences, of the form: {\"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\", \"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...]}."
-  },
-  "response": "{\"score\": 0.95, \"verdict\": \"pass\", \"reasoning\": \"seed fixture (synthetic; regenerate with make fixtures)\", \"evidence\": []}"
-}

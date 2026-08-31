@@ -1,59 +1,40 @@
-"""The regression gate runs keyless off fixtures and fails on degradation (SPEC §7, §14)."""
+"""The keyless decision-routing gate over the 75 golden cases (SPEC §7, ADR 0008)."""
 
 from __future__ import annotations
 
-import json
-
 from autonomy_ladder.evals.gate import (
     check_against_baseline,
-    evaluate_goldens,
+    evaluate_routing,
     load_baseline,
 )
 from autonomy_ladder.evals.golden_loader import load_goldens
-from autonomy_ladder.evals.llm import ReplayClient
 
 
-class _DegradedClient:
-    """A stand-in for a degraded judge/prompt: always votes fail with a low score."""
-
-    def complete(self, *, model: str, system: str, user: str) -> str:
-        return json.dumps(
-            {"score": 0.1, "verdict": "fail", "reasoning": "degraded", "evidence": []}
-        )
-
-
-def test_eval_runs_keyless_off_fixtures() -> None:
+def test_all_goldens_load() -> None:
     cases = load_goldens()
-    assert cases
-    result, missing = evaluate_goldens(cases, ReplayClient())
-    assert missing == 0
-    # Seeded fixtures reproduce the authored verdicts exactly.
-    assert all(ds.accuracy == 1.0 for ds in result.per_dimension)
+    assert len(cases) == 75
 
 
-def test_gate_passes_against_baseline() -> None:
-    cases = load_goldens()
-    result, _ = evaluate_goldens(cases, ReplayClient())
-    checked = check_against_baseline(result, load_baseline(), tolerance=0.05)
+def test_controller_reproduces_every_authored_decision_and_lane() -> None:
+    """The pure routing must match Theertha's expected_decision AND expected_lane for
+    every case — this is the keyless validation of the constraint_block + lane logic."""
+    report = evaluate_routing(load_goldens())
+    assert report.mismatches == []
+    assert report.decision_accuracy == 1.0
+    assert report.lane_accuracy == 1.0
+
+
+def test_gate_passes_against_committed_baseline() -> None:
+    report = evaluate_routing(load_goldens())
+    checked = check_against_baseline(report, load_baseline(), tolerance=0.02)
     assert checked.ok
     assert checked.regressions == []
 
 
-def test_gate_fails_on_degraded_prompt() -> None:
-    """SPEC §14: `make gate` must exit non-zero on an intentionally degraded prompt."""
-    cases = load_goldens()
-    result, _ = evaluate_goldens(cases, _DegradedClient())
-    checked = check_against_baseline(result, load_baseline(), tolerance=0.05)
+def test_gate_flags_a_routing_regression() -> None:
+    """A drop in routing accuracy below baseline - tolerance must be flagged."""
+    report = evaluate_routing(load_goldens())
+    degraded = report.model_copy(update={"accuracy": 0.5})
+    checked = check_against_baseline(degraded, {"accuracy": 1.0}, tolerance=0.02)
     assert not checked.ok
-    assert checked.regressions  # at least one dimension regressed
-
-
-def test_missing_fixtures_fail_the_gate(tmp_path) -> None:  # type: ignore[no-untyped-def]
-    """A prompt change that loses its fixtures must fail loudly, never pass silently."""
-    from autonomy_ladder.evals.llm import FixtureStore
-
-    empty_client = ReplayClient(FixtureStore(tmp_path))
-    cases = load_goldens()
-    result, missing = evaluate_goldens(cases, empty_client)
-    assert missing == len(cases)
-    assert not result.ok
+    assert checked.regressions

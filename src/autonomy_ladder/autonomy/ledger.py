@@ -48,6 +48,19 @@ class Decision(StrEnum):
     HUMAN_REVIEW = "human_review"
 
 
+class OutcomeClass(StrEnum):
+    """Why a run did (not) advance tier standing (HANDOFF spec change, ADR 0008).
+
+    Only QUALITY_PASS/QUALITY_FAILURE count in the Wilson window; CONSTRAINT_BLOCK
+    is excluded entirely so the agent is neither rewarded nor punished for the
+    requester's out-of-bounds choices.
+    """
+
+    QUALITY_PASS = "quality_pass"  # clean, autonomy-eligible target -> Wilson success
+    QUALITY_FAILURE = "quality_failure"  # a dimension failed -> Wilson failure
+    CONSTRAINT_BLOCK = "constraint_block"  # blocked by a rule -> excluded from Wilson
+
+
 class _BaseEntry(BaseModel):
     model_config = {"frozen": True}
 
@@ -63,10 +76,14 @@ class RunLogEntry(_BaseEntry):
     run_id: str
     passed: bool
     decision: Decision
+    outcome: OutcomeClass = OutcomeClass.QUALITY_PASS  # Wilson eligibility (ADR 0008)
     tier_at_decision: Tier
     segment: str
     discount_pct: float = 0.0
     blocked: list[str] = Field(default_factory=list)  # constraint codes, if any
+    # M1 instrumentation: for quality failures, was the failing behaviour explicitly
+    # instructed by the brief, or did it originate with the agent? (HANDOFF M1)
+    failure_origin: str | None = None
 
 
 class TransitionLogEntry(_BaseEntry):
@@ -147,9 +164,15 @@ class Ledger:
         decision: Decision,
         tier_at_decision: Tier,
         segment: str,
+        outcome: OutcomeClass | None = None,
         discount_pct: float = 0.0,
         blocked: list[str] | None = None,
+        failure_origin: str | None = None,
     ) -> RunLogEntry:
+        # Derive a sensible outcome when the caller does not classify explicitly
+        # (used by direct-seeding tests): passed -> quality pass, else failure.
+        if outcome is None:
+            outcome = OutcomeClass.QUALITY_PASS if passed else OutcomeClass.QUALITY_FAILURE
         entry = RunLogEntry(
             seq=self._next_seq(),
             ts=ts,
@@ -157,10 +180,12 @@ class Ledger:
             run_id=run_id,
             passed=passed,
             decision=decision,
+            outcome=outcome,
             tier_at_decision=tier_at_decision,
             segment=segment,
             discount_pct=discount_pct,
             blocked=blocked or [],
+            failure_origin=failure_origin,
         )
         self._insert(entry)
         return entry
