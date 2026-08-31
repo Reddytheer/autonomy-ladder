@@ -1,0 +1,8 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "request": {
+    "system": "You are the segment analyst for an email marketing team. You resolve audiences.",
+    "user": "Campaign type: promotional_discount\nGoal: 15% off Trailwool socks, ends Sunday.\nRequested segment: engaged_180d\nValid segment bands: engaged_30d, engaged_60d, engaged_90d, engaged_180d, all_subscribers, first_time_buyers, lapsed\nReturn JSON: {\"segment\": \"<one band>\", \"reasoning\": \"<one sentence>\"}."
+  },
+  "response": "```json\n{\n  \"segment\": \"engaged_180d\",\n  \"reasoning\": \"This segment directly matches the requested audience of users engaged in the last 180 days, providing a qualified base of active subscribers most likely to respond to a time-sensitive promotional discount.\"\n}\n```"
+}

@@ -38,10 +38,22 @@ def call_text(
 
 
 def parse_json(raw: str) -> dict[str, Any]:
-    """Parse a JSON object from a model response, tolerating stray code fences."""
+    """Parse a JSON object from a model response.
+
+    Tolerates code fences and surrounding prose by extracting the outermost
+    ``{...}`` object — models sometimes add a preamble or a trailing note around
+    the JSON, especially under faithful-render.
+    """
     text = raw.strip()
     if text.startswith("```"):
         text = text.strip("`")
-        text = text[text.find("{") : text.rfind("}") + 1]
-    result: dict[str, Any] = json.loads(text)
+    start = text.find("{")
+    if start == -1:
+        raise ValueError(f"no JSON object in model response: {raw[:160]!r}")
+    # raw_decode parses exactly one JSON value from `start` and ignores anything
+    # after it, so a trailing note or a second object doesn't break parsing.
+    obj, _ = json.JSONDecoder().raw_decode(text, start)
+    if not isinstance(obj, dict):
+        raise ValueError(f"expected a JSON object, got {type(obj).__name__}: {raw[:160]!r}")
+    result: dict[str, Any] = obj
     return result

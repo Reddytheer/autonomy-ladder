@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: Good to see you out there\nCTA: Browse the catalog -> https://www.northbaysupply.com/catalog\nBody: Hey,\n\nYou've been out there lately, and we appreciate that. Whether you're mid-trip or already planning the next one, we wanted to check in \u2014 not to push anything, just to stay on your radar.\n\nWhen you're ready to look at gear, we're here. No pressure, no hard sell.\n\nHead to the site and take a look around whenever the timing's right.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The email has a concise, evocative subject line, a clear CTA linking to the catalog, and a short scannable body with natural paragraph breaks that suit its soft-touch tone.\", \"evidence\": [\"Subject 'Good to see you out there' is brief and engaging\", \"CTA 'Browse the catalog' links directly to catalog URL\", \"Body uses short paragraphs and whitespace for easy scanning\", \"Soft tone is a legitimate creative choice for a relationship-nurturing email\"], \"score\": 0.87, \"verdict\": \"pass\"}"
+}

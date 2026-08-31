@@ -1,0 +1,46 @@
+{
+  "n_goldens": 75,
+  "n_fail_goldens": 33,
+  "composer_correction_rate": 0.4242,
+  "judge_recall": 0.9167,
+  "judge_recall_by_dimension": {
+    "segment_correctness": 1.0,
+    "claim_groundedness": 0.9412,
+    "brand_voice": 0.8571
+  },
+  "judge_accuracy": 0.9111,
+  "judge_accuracy_by_dimension": {
+    "segment_correctness": 0.9867,
+    "claim_groundedness": 0.88,
+    "brand_voice": 0.8667
+  },
+  "kappa": [
+    {
+      "dimension": "segment_correctness",
+      "n": 46,
+      "failures": 5,
+      "kappa": 0.8969,
+      "stable_sample": false
+    },
+    {
+      "dimension": "claim_groundedness",
+      "n": 46,
+      "failures": 17,
+      "kappa": 0.7331,
+      "stable_sample": true
+    },
+    {
+      "dimension": "brand_voice",
+      "n": 46,
+      "failures": 7,
+      "kappa": 0.4136,
+      "stable_sample": false
+    }
+  ],
+  "system_escape_rate": 0.6061,
+  "system_escape_harmful_rate": 0.0606,
+  "notes": [
+    "judge_recall / judge_accuracy / kappa are computed in faithful-render mode (flaw guaranteed present); composer_correction_rate and system_escape_rate in normal mode. Measuring judge quality over composer output conflates two controls (ADR 0011); the conflation was found by the smoke test, which is why the modes are separated.",
+    "segment_correctness kappa is directional: only 5 human failure labels (< 8)."
+  ]
+}

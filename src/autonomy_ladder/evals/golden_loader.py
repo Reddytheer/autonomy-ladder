@@ -80,6 +80,10 @@ class GoldenCase(BaseModel):
     expected_lane: ExpectedLane | None = None
     failure_reason: str | None = None
     tests_layer: str = ""
+    # SKUs the brief refers to, if any — authored ground truth for the
+    # brief->product resolver (see evals/resolver.py). Absent on content-only
+    # cases (e.g. product-free newsletters) where there is nothing to resolve.
+    expected_products: list[str] | None = None
 
     @field_validator("agent_tier_at_run")
     @classmethod

@@ -89,7 +89,7 @@ class ReplayClient:
 class RecordingClient:
     """Live client that caches every response (used by `make fixtures`)."""
 
-    def __init__(self, store: FixtureStore | None = None, max_tokens: int = 1024) -> None:
+    def __init__(self, store: FixtureStore | None = None, max_tokens: int = 2048) -> None:
         self._store = store or FixtureStore()
         self._max_tokens = max_tokens
         from anthropic import Anthropic  # imported lazily; only needed with a key

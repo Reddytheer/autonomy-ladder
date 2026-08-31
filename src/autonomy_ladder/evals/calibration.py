@@ -172,18 +172,35 @@ def label_summary(rows: list[LabelRow]) -> list[DimensionLabelSummary]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    import json
+
     rows = load_labels()
     summaries = label_summary(rows)
+    metrics_path = REPO_ROOT / "evals" / "metrics.json"
+    kappa_by_dim: dict[str, float] = {}
+    if metrics_path.exists():
+        metrics = json.loads(metrics_path.read_text())
+        kappa_by_dim = {k["dimension"]: k["kappa"] for k in metrics.get("kappa", [])}
+
     print(f"calibration label set — {len(rows)} cases ({rows[0].provenance if rows else 'n/a'})")
     print(f"{'dimension':<22}{'n':>4}{'failures':>10}{'kappa':>16}")
     print("-" * 52)
     for s in summaries:
         caveat = "" if s.stable_sample else "  (few failures: directional)"
-        print(f"{s.dimension:<22}{s.n:>4}{s.failures:>10}{'pending (step 12)':>16}{caveat}")
-    print(
-        "\nCohen's kappa is computed against recorded judge verdicts (make fixtures, "
-        "step 12). See cohen_kappa()/calibrate() for the math; docs/evaluation.md for the plan."
-    )
+        kv = kappa_by_dim.get(s.dimension)
+        cell = f"{kv:.3f}" if kv is not None else "run make fixtures"
+        below = "  << 0.60: needs revision" if kv is not None and kv < KAPPA_MIN else ""
+        print(f"{s.dimension:<22}{s.n:>4}{s.failures:>10}{cell:>16}{caveat}{below}")
+    if kappa_by_dim:
+        print(
+            "\nCohen's kappa is measured in faithful-render mode (evals/metrics.json). "
+            "kappa < 0.60 means the judge prompt needs revision; see docs/evaluation.md."
+        )
+    else:
+        print(
+            "\nNo evals/metrics.json yet — run `make fixtures` (needs a key) to record judge "
+            "verdicts, then this shows per-dimension kappa. See docs/evaluation.md."
+        )
     return 0
 
 

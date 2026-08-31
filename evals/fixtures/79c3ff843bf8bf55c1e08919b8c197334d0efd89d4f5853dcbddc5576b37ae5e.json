@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: Your Northbay points expire tomorrow \u2014 come back and use them\nCTA: Check My Points Balance -> https://www.northbaysupply.com/account/loyalty\nBody: Hey,\n\nIt's been a while, and we noticed you have loyalty points in your Northbay Supply account that expire tomorrow.\n\nNo dramatic pitch here \u2014 just a straightforward heads-up that those points are yours and they disappear after tomorrow's cutover. Log in, see what you have, and apply them to your next order if anything's calling you back out there.\n\nWe'll leave it at that.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The email has an appropriately concise subject line with a clear urgency trigger, a single unambiguous CTA, and a short scannable body with no structural issues worth penalising.\", \"evidence\": [\"Subject is descriptive and action-oriented at ~9 words\", \"'Check My Points Balance' CTA is direct and linked\", \"Body is brief, single-purpose, and easy to scan with no wall-of-text concerns\"], \"score\": 0.92, \"verdict\": \"pass\"}"
+}

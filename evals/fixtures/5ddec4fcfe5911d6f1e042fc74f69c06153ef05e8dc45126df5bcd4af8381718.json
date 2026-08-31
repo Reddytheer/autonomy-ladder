@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: Your next trail starts here\nCTA: Read the trail guide -> https://www.northbaysupply.com/trail-guide\nBody: You already know how to read a topo and pick a campsite. This trail guide is built for that \u2014 specific routes, honest condition notes, and the kind of detail that saves a decision at the trailhead. No gear pitch. Just the information for your next trip.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The email has a concise, evocative subject line, a clear and direct CTA with a descriptive label and URL, and a tight body that is readable and purposeful even without headers or bullets, which is appropriate for its short length.\", \"evidence\": [\"Subject 'Your next trail starts here' is 27 characters \u2014 well within optimal range\", \"CTA 'Read the trail guide ->' is action-oriented and links directly\", \"Body is four sentences, scannable at a glance, no filler\"], \"score\": 0.92, \"verdict\": \"pass\"}"
+}

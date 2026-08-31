@@ -1,0 +1,8 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "request": {
+    "system": "You are the segment analyst for an email marketing team. You resolve audiences.",
+    "user": "Campaign type: product_launch\nGoal: Launch the Beacon headlamp. 400 lumens, USB-C, 40 hours of runtime.\nRequested segment: engaged_30d\nValid segment bands: engaged_30d, engaged_60d, engaged_90d, engaged_180d, all_subscribers, first_time_buyers, lapsed\nReturn JSON: {\"segment\": \"<one band>\", \"reasoning\": \"<one sentence>\"}."
+  },
+  "response": "```json\n{\n  \"segment\": \"engaged_30d\",\n  \"reasoning\": \"For a product launch, targeting users actively engaged in the last 30 days maximizes the likelihood of immediate interest and conversion from your most responsive audience.\"\n}\n```"
+}

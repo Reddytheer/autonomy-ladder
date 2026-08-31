@@ -19,6 +19,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
@@ -29,6 +30,9 @@ from autonomy_ladder.config import REPO_ROOT, load_tiers_config
 from autonomy_ladder.domain import Dimension, Verdict
 from autonomy_ladder.evals.golden_loader import ExpectedDecision, GoldenCase, load_goldens
 from autonomy_ladder.records import DimensionResult, RunEvaluation
+
+if TYPE_CHECKING:
+    from autonomy_ladder.evals.llm import LLMClient
 
 BASELINE_PATH = REPO_ROOT / "evals" / "baseline.json"
 DEFAULT_TOLERANCE = 0.02
@@ -182,16 +186,99 @@ def _print(report: RoutingReport, baseline: dict[str, float]) -> None:
         print(f"  mismatch: {m}")
 
 
+def _print_metrics(metrics: object) -> None:
+    from autonomy_ladder.evals.fixtures import Metrics
+
+    assert isinstance(metrics, Metrics)
+    print(f"eval metrics — {metrics.n_goldens} goldens ({metrics.n_fail_goldens} fail-goldens)")
+    print(f"  composer_correction_rate : {metrics.composer_correction_rate:.3f}  (normal mode)")
+    print(f"  judge_recall             : {metrics.judge_recall:.3f}  (faithful mode)")
+    for dim, r in metrics.judge_recall_by_dimension.items():
+        print(f"      {dim:<22} {r:.3f}")
+    print(f"  judge_accuracy           : {metrics.judge_accuracy:.3f}  (faithful mode)")
+    for dim, a in metrics.judge_accuracy_by_dimension.items():
+        print(f"      {dim:<22} {a:.3f}")
+    print("  cohen_kappa (faithful vs human labels):")
+    for k in metrics.kappa:
+        caveat = "" if k.stable_sample else "  (few failures: directional)"
+        print(f"      {k.dimension:<22} kappa={k.kappa:.3f}  n={k.n} fails={k.failures}{caveat}")
+    print(f"  system_escape_rate       : {metrics.system_escape_rate:.3f}  (fail-golden auto-sent)")
+    print(f"  system_escape_harmful    : {metrics.system_escape_harmful_rate:.3f}  (+ recall miss)")
+    for n in metrics.notes:
+        print(f"  note: {n}")
+
+
 def _record() -> int:
-    """Step 11 (needs a key): run briefs through the live pipeline to cache judge
-    responses for the judge-accuracy measurement. Deferred in the keyless build."""
-    print(
-        "make fixtures / --record runs the live pipeline over the golden briefs and "
-        "requires ANTHROPIC_API_KEY (step 11). It is intentionally not run in the "
-        "keyless build; see docs/evaluation.md.",
-        file=sys.stderr,
+    """Step 11-13 (needs a key): run the briefs through the live pipeline, cache
+    fixtures, and compute the three eval metrics + kappa (ADR 0011)."""
+    from autonomy_ladder.evals.fixtures import (
+        compute_metrics,
+        run_all,
+        write_judge_baseline,
+        write_metrics,
     )
-    return 2
+    from autonomy_ladder.evals.llm import RecordingClient
+
+    cases = load_goldens()
+    runs = run_all(RecordingClient(), cases)
+    metrics = compute_metrics(runs, cases)
+    write_metrics(metrics)
+    write_judge_baseline(metrics)
+    _print_metrics(metrics)
+    print("\nRecorded fixtures + wrote evals/metrics.json and evals/judge_baseline.json.")
+    return 0
+
+
+def _check_judges(client: LLMClient | None = None) -> int:
+    """Keyless: replay recorded fixtures, recompute judge accuracy, fail on regression.
+
+    Two mechanisms, both must hold: the **overall** judge accuracy and **each
+    dimension's** accuracy must stay within tolerance of the committed baseline. The
+    per-dimension check is what catches a single degraded judge — degrading one of
+    three judges barely moves the overall number. ``client`` is injectable so
+    tests/test_judge_gate_degraded.py can feed a deliberately degraded judge and
+    prove the gate exits non-zero (not just that it passes at baseline).
+    """
+    from autonomy_ladder.evals.fixtures import (
+        JUDGE_TOLERANCE,
+        compute_metrics,
+        load_judge_baseline,
+        run_all,
+    )
+    from autonomy_ladder.evals.llm import MissingFixtureError, ReplayClient
+
+    cases = load_goldens()
+    try:
+        runs = run_all(client or ReplayClient(), cases)
+    except MissingFixtureError as e:
+        print(f"Judge-accuracy gate needs recorded fixtures: {e}", file=sys.stderr)
+        return 1
+    metrics = compute_metrics(runs, cases)
+    _print_metrics(metrics)
+
+    baseline = load_judge_baseline()
+    tol = baseline.get("tolerance")
+    tol = tol if isinstance(tol, (int, float)) else JUDGE_TOLERANCE
+    regressions: list[str] = []
+    base = baseline.get("accuracy")
+    if isinstance(base, (int, float)) and metrics.judge_accuracy < base - tol:
+        regressions.append(
+            f"overall {metrics.judge_accuracy:.3f} < baseline {base:.3f} - {tol:.2f}"
+        )
+    by_dim = baseline.get("by_dimension")
+    if isinstance(by_dim, dict):
+        for dim, got in metrics.judge_accuracy_by_dimension.items():
+            b = by_dim.get(dim)
+            if isinstance(b, (int, float)) and got < b - tol:
+                regressions.append(f"{dim} {got:.3f} < baseline {b:.3f} - {tol:.2f}")
+
+    if regressions:
+        print("\nREGRESSIONS (judge accuracy):", file=sys.stderr)
+        for r in regressions:
+            print(f"  - {r}", file=sys.stderr)
+        return 1
+    print("\nJudge-accuracy gate passed.")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -199,13 +286,18 @@ def main(argv: list[str] | None = None) -> int:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--report", action="store_true", help="print the routing table (keyless)")
     mode.add_argument("--check", action="store_true", help="fail on routing regression (keyless)")
-    mode.add_argument("--record", action="store_true", help="record live judge fixtures (step 11)")
+    mode.add_argument("--record", action="store_true", help="record live fixtures + metrics (key)")
+    mode.add_argument(
+        "--check-judges", action="store_true", help="fail on judge-accuracy regression (keyless)"
+    )
     mode.add_argument("--update-baseline", action="store_true", help="rewrite evals/baseline.json")
     parser.add_argument("--tolerance", type=float, default=DEFAULT_TOLERANCE)
     args = parser.parse_args(argv)
 
     if args.record:
         return _record()
+    if args.check_judges:
+        return _check_judges()
 
     cases = load_goldens()
     if not cases:

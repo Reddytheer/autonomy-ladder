@@ -36,7 +36,10 @@ eval: ## Run the golden set off cached fixtures and print a results table (no AP
 gate: ## Regression gate: compare goldens against baseline, non-zero exit on regression
 	$(UV) run python -m autonomy_ladder.evals.gate --check
 
-fixtures: ## Regenerate cached LLM fixtures (REQUIRES ANTHROPIC_API_KEY)
+judge-gate: ## Judge-accuracy gate: replay fixtures, non-zero exit on regression (no API key)
+	$(UV) run python -m autonomy_ladder.evals.gate --check-judges
+
+fixtures: ## Record live fixtures + compute the three eval metrics + kappa (REQUIRES ANTHROPIC_API_KEY)
 	$(UV) run python -m autonomy_ladder.evals.gate --record
 
 demo: ## Run one campaign end-to-end and show the controller decision (REQUIRES API KEY)

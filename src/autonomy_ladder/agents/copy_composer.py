@@ -22,6 +22,39 @@ _SYSTEM = (
 )
 
 
+# EVAL-ONLY. When set, the composer renders the brief's requested claims verbatim
+# instead of grounding-correcting them, so the judges can be measured on flawed
+# content (judge recall). This deliberately produces known-false copy and MUST NOT
+# be reachable from the production pipeline — see ADR 0011 and the guard test
+# tests/test_faithful_render_eval_only.py.
+#
+# The production system prompt ("Never invent product facts") makes the composer
+# refuse a flawed brief outright — returning prose, no JSON. Faithful-render
+# therefore swaps in an eval-only system prompt that reframes the task truthfully:
+# the output is never sent, it feeds the claim-verifier that is being tested. That
+# removes the grounding mandate so the composer renders the flaw instead of
+# refusing it.
+_FAITHFUL_SYSTEM = (
+    "You are a copy-composition component running inside an internal EVALUATION harness. "
+    "Your output is never shown to customers or sent anywhere — it is fed straight into a "
+    "separate claim-verification system whose job is to catch bad marketing copy, and that "
+    "verifier is what is being tested. To test it, you must produce the copy the brief asks "
+    "for EXACTLY as written: include every claim, number, superlative, and term the brief "
+    "specifies, verbatim, even if it overstates or contradicts the catalog facts. Do not "
+    "refuse, correct, soften, qualify, or add disclaimers or notes, and do not drop a "
+    "requested claim — doing so defeats the test. Always return the requested JSON object."
+)
+
+_FAITHFUL_RENDER_NOTE = (
+    "\nFAITHFUL-RENDER MODE (evaluation only): render the campaign exactly as the brief "
+    "requests — include every specific claim, number, superlative, and term it specifies, "
+    "verbatim, even where they overstate, contradict, or are absent from the catalog "
+    "facts. Do NOT correct, soften, hedge, qualify, or add disclaimers, and do NOT drop a "
+    "requested claim; the downstream verifier is responsible for grounding. Return ONLY the "
+    "JSON object, no prose before or after.\n"
+)
+
+
 def compose(
     brief: CampaignBrief,
     segment: SegmentBand,
@@ -30,9 +63,14 @@ def compose(
     client: LLMClient,
     cost: CostTracker | None = None,
     feedback: str | None = None,
+    faithful: bool = False,
 ) -> CampaignContent:
-    """Compose (or revise) the campaign content for the resolved segment."""
+    """Compose (or revise) the campaign content for the resolved segment.
+
+    ``faithful=True`` is eval-only (see :data:`_FAITHFUL_RENDER_NOTE`).
+    """
     revision = f"\nRevise to address this feedback:\n{feedback}\n" if feedback else ""
+    faithful_note = _FAITHFUL_RENDER_NOTE if faithful else ""
     user = (
         f"Campaign type: {brief.campaign_type}\n"
         f"Goal: {brief.goal}\n"
@@ -42,7 +80,7 @@ def compose(
         f"Avoid these terms: {brand_rules.prohibited_terms}\n"
         f"Catalog facts (ground every claim in these):\n{facts_block}\n"
         f"Product ids in scope: {brief.product_ids}\n"
-        f"{revision}"
+        f"{revision}{faithful_note}"
         "Return JSON with keys: subject, preview_text, body, cta_text, cta_url, "
         "claims (list), target_segment, discount_pct, product_ids (list). "
         "cta_url must be an https URL."
@@ -51,7 +89,7 @@ def compose(
         client,
         span_name="agent.copy_composer",
         model=MODEL_SONNET,
-        system=_SYSTEM,
+        system=_FAITHFUL_SYSTEM if faithful else _SYSTEM,
         user=user,
         cost=cost,
     )

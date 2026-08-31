@@ -33,6 +33,53 @@ expensive.
 > statistical evidence, not vibes), and **enforcement** (guarantee the agent
 > cannot exceed its granted tier, even if it is wrong about itself).
 
+## How to read this repo
+
+Three readers show up here with very different budgets. This is written for all three.
+
+### If you have two minutes
+
+Read the problem statement above, then look at two files:
+
+* `evals/goldens/goldens.jsonl` — search for `GS-NL-06` and `GS-NL-07`. Byte-identical
+  campaigns, different autonomy tier, opposite outcomes. That pair is the thesis of the
+  project.
+* `docs/economics.md` — the cost table. It's why the thresholds sit where they do.
+
+### If you have ten minutes
+
+Add these:
+
+* `docs/autonomy-model.md` — the tier structure, how promotion is earned, why demotion
+  is immediate and promotion is slow.
+* `src/autonomy_ladder/autonomy/controller.py` — the whole design in one file. Note that
+  no LLM participates in tier decisions; the agent produces work, the controller decides
+  what happens to it.
+* `docs/adr/` — a dozen short documents, one per architecture decision, each with what was
+  considered and what was traded off. If you only read one, read
+  `0002-controller-outside-the-agent.md`.
+
+### If you have thirty minutes and you're technical
+
+* `make setup && make test` — the full unit suite (188 tests), no API key required.
+* `make eval` — runs the full golden set through the controller and prints the routing
+  table; `make judge-gate` replays the committed judge fixtures for the judge-accuracy
+  numbers. Both are keyless — a deliberate choice, so anyone can clone this and see real
+  results in under a minute.
+* `make gate` — the regression gate. It exits non-zero when accuracy regresses past
+  tolerance versus the committed baseline, and `tests/test_gate.py` proves it *fails* on a
+  regression rather than only passing at baseline — which is how you know it's a real gate
+  and not a claim about one.
+* `make ui` — the operator console.
+
+Then the tests worth reading, because they're the thesis expressed as assertions:
+
+* a perfect 10-for-10 record does not promote, and 48-for-50 does (`tests/test_promotion.py`)
+* a run of pure constraint blocks does not move tier standing at all (`tests/test_constraint_block.py`)
+* no code path allows an LLM output to set a tier (`tests/test_no_llm_tier.py`)
+* a well-scored campaign still breaches deliverability under some seeds (`tests/test_outcomes.py`) —
+  because a simulator where good scores always produce good outcomes would prove nothing
+
 ## Quickstart
 
 Requires Python ≥ 3.11 and [`uv`](https://docs.astral.sh/uv/). **No API key is

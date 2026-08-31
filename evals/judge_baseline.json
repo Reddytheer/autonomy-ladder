@@ -1,0 +1,10 @@
+{
+  "kind": "judge_accuracy",
+  "accuracy": 0.9111,
+  "by_dimension": {
+    "segment_correctness": 0.9867,
+    "claim_groundedness": 0.88,
+    "brand_voice": 0.8667
+  },
+  "tolerance": 0.05
+}

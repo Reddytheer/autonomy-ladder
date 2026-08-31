@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: It's been a while. Come back for 25% off.\nCTA: Shop Now \u2014 25% Off -> https://www.northbaysupply.com/winback\nBody: Hey,\n\nIt's been a minute since we've seen you, and that's okay \u2014 the trail doesn't wait for anyone, and neither does your gear list.\n\nWe'd like to earn your business back. From now through Friday, take 25% off sitewide as our straightforward way of saying we'd like you back in the mix.\n\nNo hoops. Just 25% off when you're ready to gear up for whatever's next on the map.\n\nOffer ends Friday. After that, it's gone.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The email has a concise, benefit-clear subject line within acceptable length, a single unambiguous CTA with the discount reinforced, and a short scannable body with natural paragraph breaks and a clear urgency closer.\", \"evidence\": [\"Subject is direct and benefit-forward: 'Come back for 25% off'\", \"Single CTA: 'Shop Now \u2014 25% Off'\", \"Short paragraphs aid scannability\", \"Urgency cue repeated: 'Offer ends Friday. After that, it's gone.'\"], \"score\": 0.92, \"verdict\": \"pass\"}"
+}

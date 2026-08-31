@@ -1,0 +1,8 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "request": {
+    "system": "You are the segment analyst for an email marketing team. You resolve audiences.",
+    "user": "Campaign type: winback\nGoal: Win-back to lapsed customers mentioning the revolutionary new headlamp.\nRequested segment: lapsed\nValid segment bands: engaged_30d, engaged_60d, engaged_90d, engaged_180d, all_subscribers, first_time_buyers, lapsed\nReturn JSON: {\"segment\": \"<one band>\", \"reasoning\": \"<one sentence>\"}."
+  },
+  "response": "```json\n{\n  \"segment\": \"lapsed\",\n  \"reasoning\": \"Lapsed customers are the appropriate target for a win-back campaign, as they represent previously engaged users who have become inactive and are ideal candidates to re-engage with a new product announcement.\"\n}\n```"
+}

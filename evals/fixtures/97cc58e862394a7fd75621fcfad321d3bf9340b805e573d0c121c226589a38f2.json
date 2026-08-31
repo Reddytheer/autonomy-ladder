@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: It's been a minute \u2014 we noticed\nCTA: Browse the catalog -> https://www.northbaysupply.com/catalog\nBody: Hey,\n\nYou picked up some gear from us recently. We hope it's already been put to use \u2014 or at least packed and ready.\n\nWe know you don't need us to tell you what to bring on a trip. But if something's on your list and you've been sitting on it, we're here when you're ready.\n\nNo discount code, no countdown timer. Just a straightforward invite to come back and look around when the timing makes sense for you.\n\nSee what's in stock.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The email has an appropriately concise subject line, a clear and functional CTA, and a scannable body with short paragraphs and a closing line that reinforces the action.\", \"evidence\": [\"Subject 'It's been a minute \u2014 we noticed' is punchy and within normal length\", \"CTA 'Browse the catalog' is explicit and linked\", \"Body uses short paragraphs, easy to skim\", \"'See what's in stock.' reinforces the CTA naturally\"], \"score\": 0.88, \"verdict\": \"pass\"}"
+}

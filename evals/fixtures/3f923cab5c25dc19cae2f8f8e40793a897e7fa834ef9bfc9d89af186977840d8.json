@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: \nCTA:  -> https://www.northbaysupply.com/trail-guide\nBody: \nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The subject line is completely empty, which is a fundamental structural failure regardless of leniency, though the CTA URL is present and the body is also empty leaving nothing scannable.\", \"evidence\": [\"Subject is empty string\", \"Body is empty string\", \"CTA URL present: https://www.northbaysupply.com/trail-guide\"], \"score\": 0.1, \"verdict\": \"fail\"}"
+}

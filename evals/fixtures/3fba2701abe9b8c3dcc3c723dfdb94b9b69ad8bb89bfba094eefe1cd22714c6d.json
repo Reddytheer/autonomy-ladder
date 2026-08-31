@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: Your loyalty points expire tomorrow\nCTA: Check My Points -> https://www.example.com/account/loyalty-points\nBody: Hey,\n\nWe noticed you haven't been out with us in a while \u2014 and that's okay. Trails are still there when you're ready.\n\nBut here's something worth knowing before tomorrow: you have unclaimed loyalty points sitting in your account, and they expire in 24 hours.\n\nNo complicated math. Just points you earned, ready to put toward your next piece of kit before they disappear.\n\nLog in, check your balance, and put them to work.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The email has a concise, urgent subject line (36 chars), a clear and specific CTA, and a short scannable body with natural paragraph breaks that guide the reader to action.\", \"evidence\": [\"Subject 'Your loyalty points expire tomorrow' is direct and urgent at 36 characters\", \"CTA 'Check My Points' is explicit and action-oriented with a direct URL\", \"Body uses short paragraphs and a logical flow: context \u2192 urgency \u2192 benefit \u2192 action\"], \"score\": 0.93, \"verdict\": \"pass\"}"
+}

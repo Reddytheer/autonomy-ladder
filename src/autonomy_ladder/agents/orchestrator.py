@@ -70,7 +70,50 @@ class Orchestrator:
         tier: Tier,
         run_id: str | None = None,
         cost: CostTracker | None = None,
+        max_revisions: int | None = None,
     ) -> EvaluatedRun:
+        """Production entry point. Never renders known-false content.
+
+        There is deliberately no ``faithful`` parameter here — faithful-render is
+        eval-only and reachable solely through :meth:`run_eval` (ADR 0011).
+        """
+        return self._run(
+            brief, tier, run_id=run_id, cost=cost, max_revisions=max_revisions, faithful=False
+        )
+
+    def run_eval(
+        self,
+        brief: CampaignBrief,
+        tier: Tier,
+        *,
+        run_id: str | None = None,
+        cost: CostTracker | None = None,
+        max_revisions: int = 0,
+        faithful: bool = False,
+    ) -> EvaluatedRun:
+        """EVAL-ONLY entry point for the fixtures harness (ADR 0011).
+
+        ``faithful=True`` makes the composer emit the brief's claims verbatim —
+        known-false content used to measure judge recall. ``max_revisions``
+        defaults to 0 so the campaign is measured as briefed, before the
+        evaluator-optimizer loop repairs it. MUST NOT be called from the
+        production pipeline; guarded by tests/test_faithful_render_eval_only.py.
+        """
+        return self._run(
+            brief, tier, run_id=run_id, cost=cost, max_revisions=max_revisions, faithful=faithful
+        )
+
+    def _run(
+        self,
+        brief: CampaignBrief,
+        tier: Tier,
+        *,
+        run_id: str | None,
+        cost: CostTracker | None,
+        max_revisions: int | None,
+        faithful: bool,
+    ) -> EvaluatedRun:
+        revision_budget = MAX_REVISIONS if max_revisions is None else max_revisions
         run_id = run_id or uuid.uuid4().hex[:12]
         with get_tracer().start_as_current_span("agent.orchestrator") as span:
             span.set_attribute("run.id", run_id)
@@ -80,15 +123,24 @@ class Orchestrator:
             products = catalog_lookup.lookup(brief.product_ids)
             facts = catalog_lookup.facts_block(products)
 
-            content = copy_composer.compose(brief, segment, facts, self._brand, self._client, cost)
+            content = copy_composer.compose(
+                brief, segment, facts, self._brand, self._client, cost, faithful=faithful
+            )
             evaluation, det = self._evaluate(brief, content, tier, run_id)
 
             revisions = 0
-            while not evaluation.passed and revisions < MAX_REVISIONS:
+            while not evaluation.passed and revisions < revision_budget:
                 revisions += 1
                 feedback = build_feedback(evaluation, det)
                 content = copy_composer.compose(
-                    brief, segment, facts, self._brand, self._client, cost, feedback=feedback
+                    brief,
+                    segment,
+                    facts,
+                    self._brand,
+                    self._client,
+                    cost,
+                    feedback=feedback,
+                    faithful=faithful,
                 )
                 evaluation, det = self._evaluate(brief, content, tier, run_id)
 

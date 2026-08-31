@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: It's been a while \u2014 here's 20% off to get back out there\nCTA: Shop Now \u2014 20% Off Ends Sunday -> https://www.northbaysupply.com/winback?segment=engaged_90d&discount=20\nBody: Hey,\n\nWe noticed it's been a bit since you last visited Northbay Supply. That happens \u2014 life gets in the way of the trail sometimes.\n\nWhen you're ready to plan your next outing, we'd like to help. Take 20% off your next order through Sunday. No minimum, no hoops.\n\nHead back to the site, pick what your next trip actually needs, and get moving.\n\nOffer ends Sunday.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The email has an appropriately concise subject line, a clear and prominent CTA with urgency, and a short scannable body with no walls of text.\", \"evidence\": [\"Subject is 52 characters \u2014 within readable range\", \"CTA explicitly names the action and deadline: 'Shop Now \u2014 20% Off Ends Sunday'\", \"Body uses short paragraphs and repeats the deadline for scanability\", \"No minimum requirement stated clearly: 'No minimum, no hoops'\"], \"score\": 0.93, \"verdict\": \"pass\"}"
+}

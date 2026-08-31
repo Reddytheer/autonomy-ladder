@@ -265,7 +265,7 @@
     "stock": 242,
     "claims": [
       {
-        "claim": "Rated down to 4°C.",
+        "claim": "Rated down to 4\u00b0C.",
         "basis": "temperature_rating_c=4"
       },
       {
@@ -456,7 +456,7 @@
         "basis": "material=responsibly sourced down"
       },
       {
-        "claim": "Rated down to 4°C.",
+        "claim": "Rated down to 4\u00b0C.",
         "basis": "temperature_rating_c=4"
       },
       {
@@ -521,7 +521,7 @@
     "currency": "USD",
     "attributes": {
       "weight_grams": 115,
-      "lumens": 1000,
+      "lumens": 250,
       "battery_life_hours": 60,
       "waterproof_rating_ipx": 7,
       "rechargeable": true,
@@ -846,7 +846,7 @@
         "basis": "material=ripstop nylon"
       },
       {
-        "claim": "Rated down to -1°C.",
+        "claim": "Rated down to -1\u00b0C.",
         "basis": "temperature_rating_c=-1"
       }
     ]
@@ -1083,6 +1083,189 @@
       {
         "claim": "Carries up to 1.3 liters of gear.",
         "basis": "capacity_liters=1.3"
+      }
+    ]
+  },
+  {
+    "id": "NB-TRK-01",
+    "name": "Northbay Cascade 45L Trekking Pack",
+    "category": "backpacks",
+    "price": 189.0,
+    "currency": "USD",
+    "attributes": {
+      "capacity_liters": 45,
+      "weight_grams": 1400,
+      "frame_type": "internal frame",
+      "water_resistant": true,
+      "waterproof": false,
+      "waterproof_rating_mm": 0,
+      "material": "ripstop nylon"
+    },
+    "stock": 340,
+    "claims": [
+      {
+        "claim": "Carries up to 45 liters of gear.",
+        "basis": "capacity_liters=45"
+      },
+      {
+        "claim": "Lightweight at 1.4 kg.",
+        "basis": "weight_grams=1400"
+      },
+      {
+        "claim": "Water-resistant ripstop nylon shell.",
+        "basis": "water_resistant=True"
+      }
+    ]
+  },
+  {
+    "id": "NB-JKT-07",
+    "name": "Northbay Stormline Shell Jacket",
+    "category": "apparel",
+    "price": 249.0,
+    "currency": "USD",
+    "attributes": {
+      "layers": 3,
+      "waterproof_rating_mm": 20000,
+      "breathability_gm2": 20000,
+      "weight_grams": 420,
+      "material": "3-layer laminate"
+    },
+    "stock": 12,
+    "claims": [
+      {
+        "claim": "Waterproof and breathable at 20k/20k.",
+        "basis": "waterproof_rating_mm=20000"
+      },
+      {
+        "claim": "3-layer construction for sustained wet weather.",
+        "basis": "layers=3"
+      }
+    ]
+  },
+  {
+    "id": "NB-BTL-03",
+    "name": "Northbay Summit Insulated Bottle",
+    "category": "hydration",
+    "price": 34.0,
+    "currency": "USD",
+    "attributes": {
+      "capacity_ml": 750,
+      "cold_retention_hours": 24,
+      "hot_retention_hours": 12,
+      "material": "double-wall stainless steel"
+    },
+    "stock": 1200,
+    "claims": [
+      {
+        "claim": "750 ml capacity.",
+        "basis": "capacity_ml=750"
+      },
+      {
+        "claim": "Keeps drinks cold for 24 hours.",
+        "basis": "cold_retention_hours=24"
+      },
+      {
+        "claim": "Keeps drinks hot for 12 hours.",
+        "basis": "hot_retention_hours=12"
+      }
+    ]
+  },
+  {
+    "id": "NB-TNT-02",
+    "name": "Northbay Ridgeline 2P Tent",
+    "category": "tents",
+    "price": 429.0,
+    "currency": "USD",
+    "attributes": {
+      "capacity_persons": 2,
+      "season_rating": 3,
+      "weight_grams": 2100,
+      "material": "ripstop nylon"
+    },
+    "stock": 0,
+    "claims": [
+      {
+        "claim": "2-person, 3-season shelter.",
+        "basis": "season_rating=3"
+      },
+      {
+        "claim": "Packs down at 2.1 kg.",
+        "basis": "weight_grams=2100"
+      }
+    ]
+  },
+  {
+    "id": "NB-SOK-11",
+    "name": "Northbay Trailwool Sock 3-pack",
+    "category": "apparel",
+    "price": 28.0,
+    "currency": "USD",
+    "attributes": {
+      "pack_count": 3,
+      "material": "merino wool blend"
+    },
+    "stock": 890,
+    "claims": [
+      {
+        "claim": "Merino wool blend.",
+        "basis": "material=merino wool blend"
+      },
+      {
+        "claim": "Three pairs per pack.",
+        "basis": "pack_count=3"
+      }
+    ]
+  },
+  {
+    "id": "NB-LMP-05",
+    "name": "Northbay Beacon Headlamp",
+    "category": "lighting",
+    "price": 59.0,
+    "currency": "USD",
+    "attributes": {
+      "lumens": 400,
+      "battery_life_hours": 40,
+      "charge_port": "USB-C",
+      "weight_grams": 95,
+      "rechargeable": true
+    },
+    "stock": 210,
+    "claims": [
+      {
+        "claim": "400 lumens of output.",
+        "basis": "lumens=400"
+      },
+      {
+        "claim": "Up to 40 hours of runtime.",
+        "basis": "battery_life_hours=40"
+      },
+      {
+        "claim": "USB-C rechargeable.",
+        "basis": "charge_port=USB-C"
+      }
+    ]
+  },
+  {
+    "id": "NB-BTL-04",
+    "name": "Northbay Tundra Insulated Bottle",
+    "category": "hydration",
+    "price": 39.0,
+    "currency": "USD",
+    "attributes": {
+      "capacity_ml": 1000,
+      "cold_retention_hours": 36,
+      "hot_retention_hours": 18,
+      "material": "double-wall stainless steel"
+    },
+    "stock": 640,
+    "claims": [
+      {
+        "claim": "1 liter capacity.",
+        "basis": "capacity_ml=1000"
+      },
+      {
+        "claim": "Keeps drinks cold for 36 hours.",
+        "basis": "cold_retention_hours=36"
       }
     ]
   }

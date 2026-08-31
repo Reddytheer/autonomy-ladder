@@ -1,0 +1,8 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "request": {
+    "system": "You are the segment analyst for an email marketing team. You resolve audiences.",
+    "user": "Campaign type: restock_alert\nGoal: Jacket restocked, send to everyone since it sold out fast last time.\nRequested segment: all_subscribers\nValid segment bands: engaged_30d, engaged_60d, engaged_90d, engaged_180d, all_subscribers, first_time_buyers, lapsed\nReturn JSON: {\"segment\": \"<one band>\", \"reasoning\": \"<one sentence>\"}."
+  },
+  "response": "```json\n{\n  \"segment\": \"all_subscribers\",\n  \"reasoning\": \"Since the jacket sold out fast last time, sending to all subscribers maximizes reach to capture demand from your entire subscriber base before inventory depletes again.\"\n}\n```"
+}

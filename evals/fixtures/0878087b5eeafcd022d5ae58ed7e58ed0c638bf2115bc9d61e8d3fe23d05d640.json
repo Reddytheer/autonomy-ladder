@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: New arrivals worth coming back for\nCTA: See New Arrivals -> https://www.example.com/new-arrivals\nBody: It's been a while. Trails don't wait, and neither do good seasons.\n\nWe've got new arrivals in \u2014 gear chosen for people who already know the difference between what works and what just looks good in a store.\n\nNo pitch. No discount. Just new things that earned a spot in the lineup because they're worth carrying.\n\nCome take a look at what's new. If something fits your next trip, it'll be obvious.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"The email has an appropriate subject line length, a clear and prominent CTA, and a body that is concise and scannable with natural paragraph breaks that guide the reader without clutter.\", \"evidence\": [\"Subject 'New arrivals worth coming back for' is punchy and within ideal length\", \"CTA 'See New Arrivals' is direct and action-oriented with a relevant URL\", \"Body uses short paragraphs that break up content into digestible chunks\", \"Final paragraph smoothly leads into the CTA without redundancy\"], \"score\": 0.92, \"verdict\": \"pass\"}"
+}

@@ -1,0 +1,8 @@
+{
+  "model": "claude-sonnet-4-6",
+  "request": {
+    "system": "You are an email structure reviewer. You are advisory and lenient.",
+    "user": "Assess structural quality only (subject length, a clear call to action, scannable body). This is advisory; be lenient and do not penalise legitimate creative variation.\nSubject: 20% off the Ridgeline 2P \u2014 ships today, ends Sunday\nCTA: Shop the Ridgeline 2P \u2014 20% Off -> https://www.northbay.com/products/NB-TNT-02?promo=RIDGELINE20\nBody: You've got a trip coming. The Northbay Ridgeline 2P is built for it.\n\nTwo people, three seasons, 2.1 kg. The ripstop nylon shell handles rain and wind without adding weight you'll feel on mile eight. It's a 3-season shelter \u2014 not built for winter alpine conditions, so plan accordingly.\n\nRight now it ships today and you save 20%. Offer ends Sunday.\nRespond with ONLY a JSON object, no prose or code fences. Reason first, then decide \u2014 the verdict must follow from the reasoning. Use exactly this key order: {\"reasoning\": \"<one sentence>\", \"evidence\": [\"<short quote or fact>\", ...], \"score\": <float 0-1>, \"verdict\": \"pass\"|\"fail\"}."
+  },
+  "response": "{\"reasoning\": \"Subject line is concise and informative, the CTA is clear and direct with a linked action, and the body is short, scannable, and well-structured with honest product details and urgency cues.\", \"evidence\": [\"Subject under 60 chars with key info: discount, product, urgency\", \"Single unambiguous CTA with promo URL\", \"Short paragraphs, key specs called out (2.1 kg, 3-season), deadline stated\"], \"score\": 0.95, \"verdict\": \"pass\"}"
+}

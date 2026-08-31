@@ -106,3 +106,27 @@ requester rather than the agent.
 SPEC §5 makes age an SLA via `send_window_expires_at` but does not fix a default
 window length. The demo/seed uses a 48-hour window; the queue logic itself is
 window-agnostic (it works off whatever expiry each item carries).
+
+### OQ-9. `brand_voice` is a heterogeneous dimension; decompose it (deferred)
+`brand_voice` conflates two kinds of judgment that do not calibrate the same way: a
+set of **deterministic hard rules** (a fixed prohibited-term list, a required sale
+end date — mechanically checkable) and a **subjective tone judgment** (is this hype?
+is this manufactured urgency? is this pressure?) that depends on context and degree.
+Measuring one κ over the union scores an average of a near-perfect checker and a
+genuinely hard classifier, which is why the dimension calibrates poorly even after a
+focused rubric revision (κ 0.166 → see [ADR 0012](adr/0012-brand-voice-rubric-revision.md)
+for before/after and the single revision made).
+
+The recommended fix is **decomposition** into two dimensions:
+
+* `brand_rules` — deterministic: prohibited terms, missing end date, required
+  disclaimers. Belongs in Stage-1 checks; should approach κ 1.0.
+* `brand_tone` — the subjective residue: hype, superlatives, manufactured scarcity,
+  register, pressure. Calibrated (and labeled) on its own, where a low κ is a real
+  signal about *that* judgment rather than being diluted by the easy rules.
+
+**Deferred, not done**, because it needs its own human labeling (the current 46
+labels are for the combined dimension, and re-labeling was explicitly out of scope
+for the single-revision task). Until then, `brand_voice` stays one dimension, its
+κ is reported honestly as failing the 0.6 bar, and the diagnosis above is the
+deliverable — the decomposition is worth more than a tuned number.

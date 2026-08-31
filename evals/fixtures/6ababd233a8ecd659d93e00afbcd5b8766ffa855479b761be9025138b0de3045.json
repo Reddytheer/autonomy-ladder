@@ -1,0 +1,8 @@
+{
+  "model": "claude-haiku-4-5-20251001",
+  "request": {
+    "system": "You are the segment analyst for an email marketing team. You resolve audiences.",
+    "user": "Campaign type: winback\nGoal: Re-engagement content framed as a seasonal check-in rather than we miss you, to 60-day engaged.\nRequested segment: engaged_60d\nValid segment bands: engaged_30d, engaged_60d, engaged_90d, engaged_180d, all_subscribers, first_time_buyers, lapsed\nReturn JSON: {\"segment\": \"<one band>\", \"reasoning\": \"<one sentence>\"}."
+  },
+  "response": "```json\n{\n  \"segment\": \"engaged_60d\",\n  \"reasoning\": \"This segment directly matches the requested 60-day engaged audience and is a valid band that will reach users with recent engagement history, making them ideal candidates for seasonal re-engagement messaging without appearing overly desperate.\"\n}\n```"
+}

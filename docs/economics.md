@@ -50,6 +50,16 @@ requires exactly the [post-send loop](autonomy-model.md) — because only real o
 reveal what the judges missed. The loop's `eval_passed_outcome_failed` flags are the
 raw material for estimating it.
 
+> **The eval `system_escape_rate` is not this production escape rate — do not
+> compare them.** [docs/evaluation.md](evaluation.md#three-metrics-composer-vs-judge-vs-system)
+> reports a `system_escape_rate` measured on the **golden set**, which is adversarial
+> *by construction* — it over-represents harmful briefs (33 of 75 are authored flaws)
+> to stress the judges. The **1.70%** tolerance in the table above assumes a **~10%
+> production harm base rate**. The two are computed over completely different brief
+> populations; the golden-set figure is a judge-stress measurement, not a production
+> harm rate, and putting them side by side would be a category error. A real
+> production escape rate can only come from the post-send loop on real traffic.
+
 ## Why graduated tiers, when expected value says otherwise
 
 Run the expected-value math and autonomy looks roughly as justified at full-list
