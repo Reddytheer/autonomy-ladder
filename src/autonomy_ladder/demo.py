@@ -11,6 +11,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from autonomy_ladder.autonomy.controller import ControllerDecision
+from autonomy_ladder.autonomy.ledger import Decision, OutcomeClass
+from autonomy_ladder.autonomy.tiers import Tier, TierState
 from autonomy_ladder.domain import (
     BRAND_VOICE_PASS_THRESHOLD,
     CampaignType,
@@ -20,7 +23,7 @@ from autonomy_ladder.domain import (
 )
 from autonomy_ladder.queue.models import ItemStatus, QueueItem
 from autonomy_ladder.records import CampaignContent, DimensionResult, RunEvaluation
-from autonomy_ladder.service import AutonomyService
+from autonomy_ladder.service import AutonomyService, RunRecord
 
 
 def _eval(
@@ -198,16 +201,72 @@ def _batch_item(run_id: str, ct: CampaignType, anchor: datetime, hours_left: int
     )
 
 
+def _record_for_item(item: QueueItem) -> RunRecord:
+    """A run trace matching a seeded queue item, so /api/runs/{id} (the Run Detail
+    view) resolves when a reviewer clicks the item. Mirrors what record_run would
+    persist for a run routed to review."""
+    passed = not item.critical_flags
+
+    def dim(d: Dimension, score: float) -> DimensionResult:
+        verdict = Verdict.FAIL if d in item.critical_flags else Verdict.PASS
+        if d is Dimension.BRAND_VOICE and item.brand_voice_score < BRAND_VOICE_PASS_THRESHOLD:
+            verdict = Verdict.FAIL
+        return DimensionResult(dimension=d, score=score, verdict=verdict)
+
+    dims = {
+        Dimension.SEGMENT_CORRECTNESS: dim(Dimension.SEGMENT_CORRECTNESS, item.min_dimension_score),
+        Dimension.CLAIM_GROUNDEDNESS: dim(Dimension.CLAIM_GROUNDEDNESS, item.min_dimension_score),
+        Dimension.BRAND_VOICE: dim(Dimension.BRAND_VOICE, item.brand_voice_score),
+        Dimension.STRUCTURE_QUALITY: dim(Dimension.STRUCTURE_QUALITY, 0.85),
+    }
+    if item.critical_flags:
+        outcome = OutcomeClass.QUALITY_FAILURE
+    elif item.constraint_codes:
+        outcome = OutcomeClass.CONSTRAINT_BLOCK
+    else:
+        outcome = OutcomeClass.QUALITY_PASS
+    decision = ControllerDecision(
+        run_id=item.run_id,
+        campaign_type=item.campaign_type,
+        decision=Decision.HUMAN_REVIEW,
+        passed=passed,
+        outcome=outcome,
+        effective_tier=Tier.ASSIST,
+        critical_failures=list(item.critical_flags),
+        rationale=list(item.rationale),
+        state_after=TierState.initial(item.campaign_type),
+    )
+    return RunRecord(
+        run_id=item.run_id,
+        campaign_type=item.campaign_type,
+        created_at=item.created_at,
+        content=_content(item.campaign_type, item.segment),
+        evaluation=RunEvaluation(
+            run_id=item.run_id,
+            campaign_type=item.campaign_type.value,
+            segment=item.segment,
+            discount_pct=item.discount_pct,
+            dimensions=dims,
+        ),
+        decision=decision,
+    )
+
+
 def _seed_queue(service: AutonomyService, anchor: datetime) -> None:
     """Add a curated, current set of queue items spanning both lanes and the SLA states."""
+
+    def add(item: QueueItem) -> None:
+        service.queue.add(item)
+        service.runs.add(_record_for_item(item))  # so Run Detail resolves for each item
+
     # Batch lane — clean look-alikes for group approval.
     for i, ct in enumerate(
         [CampaignType.PRODUCT_LAUNCH, CampaignType.PRODUCT_LAUNCH, CampaignType.WINBACK]
     ):
-        service.queue.add(_batch_item(f"batch-{i + 1:02d}", ct, anchor, hours_left=30 - i))
+        add(_batch_item(f"batch-{i + 1:02d}", ct, anchor, hours_left=30 - i))
 
     # Judgment lane — a critical failure, a constraint breach, and a rate-limit hit.
-    service.queue.add(
+    add(
         QueueItem(
             run_id="judge-claim",
             campaign_type=CampaignType.PROMOTIONAL_DISCOUNT,
@@ -222,7 +281,7 @@ def _seed_queue(service: AutonomyService, anchor: datetime) -> None:
             status=ItemStatus.PENDING,
         )
     )
-    service.queue.add(
+    add(
         QueueItem(
             run_id="judge-discount",
             campaign_type=CampaignType.RESTOCK_ALERT,
@@ -237,7 +296,7 @@ def _seed_queue(service: AutonomyService, anchor: datetime) -> None:
             status=ItemStatus.PENDING,
         )
     )
-    service.queue.add(
+    add(
         QueueItem(
             run_id="judge-ratelimit",
             campaign_type=CampaignType.NEWSLETTER,
@@ -253,7 +312,7 @@ def _seed_queue(service: AutonomyService, anchor: datetime) -> None:
     )
 
     # SLA states: one escalating (within 20% of its window), one already expired.
-    service.queue.add(
+    add(
         QueueItem(
             run_id="sla-escalating",
             campaign_type=CampaignType.NEWSLETTER,
@@ -266,7 +325,7 @@ def _seed_queue(service: AutonomyService, anchor: datetime) -> None:
             status=ItemStatus.PENDING,
         )
     )
-    service.queue.add(
+    add(
         QueueItem(
             run_id="sla-expired",
             campaign_type=CampaignType.WINBACK,
