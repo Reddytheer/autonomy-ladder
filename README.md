@@ -11,95 +11,98 @@ queue, and the regression gate know nothing about marketing. Swap the agents and
 the quality dimensions and the same machinery governs any agent whose mistakes are
 expensive.
 
-## The problem
+[Explore the design decisions](docs/adr/) · [Read the evaluation](docs/evaluation.md) · [Understand the economics](docs/economics.md)
 
-> Every agent product hits the same wall.
->
-> An agent can draft, analyze, and decide. But shipping it into a workflow where
-> mistakes are expensive means putting a human in front of every output. And a
-> human reviewing every output means you have built a drafting tool, not
-> automation. The reviewer becomes the bottleneck; the value never materializes.
->
-> The industry's answer is a binary switch: human-approves-everything, or full
-> autonomy. Both are wrong. The first caps value. The second is how you get an
-> incident.
->
-> The real question is not "can the agent do this" but "has the agent earned the
-> right to do this unsupervised, for this specific kind of task, on this specific
-> evidence."
->
-> `autonomy-ladder` answers it in three parts: **measurement** (score output on
-> dimensions that matter), **graduation** (move between autonomy tiers on
-> statistical evidence, not vibes), and **enforcement** (guarantee the agent
-> cannot exceed its granted tier, even if it is wrong about itself).
+## See the decision in one minute
 
-## How to read this repo
+The same campaign can require human approval at one tier and qualify for autonomous
+routing at another. Permissions depend on recorded evidence and hard constraints.
+The reference application simulates sending; it does not send real email.
 
-Three readers show up here with very different budgets. This is written for all three.
-
-### If you have two minutes
-
-Read the problem statement above, then look at two files:
-
-* `evals/goldens/goldens.jsonl` — search for `GS-NL-06` and `GS-NL-07`. Byte-identical
-  campaigns, different autonomy tier, opposite outcomes. That pair is the thesis of the
-  project.
-* `docs/economics.md` — the cost table. It's why the thresholds sit where they do.
-
-### If you have ten minutes
-
-Add these:
-
-* `docs/autonomy-model.md` — the tier structure, how promotion is earned, why demotion
-  is immediate and promotion is slow.
-* `src/autonomy_ladder/autonomy/controller.py` — the whole design in one file. Note that
-  no LLM participates in tier decisions; the agent produces work, the controller decides
-  what happens to it.
-* `docs/adr/` — a dozen short documents, one per architecture decision, each with what was
-  considered and what was traded off. If you only read one, read
-  `0002-controller-outside-the-agent.md`.
-
-### If you have thirty minutes and you're technical
-
-* `make setup && make test` — the full unit suite (188 tests), no API key required.
-* `make eval` — runs the full golden set through the controller and prints the routing
-  table; `make judge-gate` replays the committed judge fixtures for the judge-accuracy
-  numbers. Both are keyless — a deliberate choice, so anyone can clone this and see real
-  results in under a minute.
-* `make gate` — the regression gate. It exits non-zero when accuracy regresses past
-  tolerance versus the committed baseline, and `tests/test_gate.py` proves it *fails* on a
-  regression rather than only passing at baseline — which is how you know it's a real gate
-  and not a claim about one.
-* `make ui` — the operator console.
-
-Then the tests worth reading, because they're the thesis expressed as assertions:
-
-* a perfect 10-for-10 record does not promote, and 48-for-50 does (`tests/test_promotion.py`)
-* a run of pure constraint blocks does not move tier standing at all (`tests/test_constraint_block.py`)
-* no code path allows an LLM output to set a tier (`tests/test_no_llm_tier.py`)
-* a well-scored campaign still breaches deliverability under some seeds (`tests/test_outcomes.py`) —
-  because a simulator where good scores always produce good outcomes would prove nothing
-
-## Quickstart
-
-Requires Python ≥ 3.11 and [`uv`](https://docs.astral.sh/uv/). **No API key is
-needed** for setup, tests, evals, the gate, or the UI.
-
-```bash
-make setup      # create the venv and install everything
-make test       # full unit-test suite (no API key)
-make eval       # run the golden set off cached fixtures; print a results table
-make gate       # regression gate: non-zero exit on any per-dimension regression
-make ui         # operator console at http://localhost:8000 (seeds demo state)
+```mermaid
+flowchart LR
+    A[Agent produces campaign] --> B[Independent quality checks]
+    B --> C[Deterministic autonomy controller]
+    D[Evidence and current tier] --> C
+    C --> E[Human review]
+    C --> F[Eligible for simulated send]
+    F --> G[Post-send outcomes]
+    G --> D
 ```
 
-Two targets make live LLM calls and need `ANTHROPIC_API_KEY` (copy `.env.example`
-to `.env`):
+| Evidence or event | Controller response |
+|---|---|
+| 10 successful runs out of 10 | Remain at Assist: insufficient evidence |
+| 48 successful runs in a 50-run window | Qualify for Bounded promotion when eligible; Wilson lower bound ≈ 0.865 exceeds 0.85 |
+| Critical quality failure at an elevated tier | Return to Assist and enter probation |
+| Deliverability breach after a simulated send | Revoke elevated autonomy, even if pre-send checks passed |
+
+These are implemented behaviors, with [promotion tests](tests/test_promotion.py),
+[demotion tests](tests/test_demotion.py), and [outcome tests](tests/test_outcomes.py).
+See the [full autonomy model](docs/autonomy-model.md) for eligibility, constraints,
+and recovery requirements.
+
+## Try the operator console — no API key
+
+Requires Python ≥ 3.11 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-make demo       # run one campaign end-to-end; print the controller decision + routing report
-make fixtures   # record real judge responses into evals/fixtures/
+git clone https://github.com/Reddytheer/autonomy-ladder.git
+cd autonomy-ladder
+make setup
+make ui
 ```
+
+Open **http://localhost:8000**. The app seeds synthetic demo state so you can inspect
+permissions, review queued campaigns, follow run evidence, and trace tier changes.
+The console is a local reference application; demo state is not production evidence.
+
+To reproduce the checks without an API key:
+
+```bash
+make test         # unit tests
+make eval         # authored verdicts through the controller: routing results
+make gate         # fail on decision-routing regression
+make judge-gate   # replay recorded LLM fixtures: judge-accuracy regression
+```
+
+Live generation and fixture recording cost API tokens. Set `ANTHROPIC_API_KEY`
+in your environment (or copy `.env.example` to `.env` and fill it in), then use
+`make demo` for one campaign or `make fixtures` to record evaluation responses.
+
+## What the evidence shows
+
+The committed evaluation separates controller correctness from judge quality:
+
+| Check | Recorded result | What it establishes |
+|---|---|---|
+| Decision and review-lane routing | 75/75 authored cases | The controller routes those supplied verdicts as expected |
+| Judge accuracy, faithful-render mode | 0.911 | Agreement on content rendered to preserve the test flaws |
+| Claim-groundedness calibration | κ = 0.733 | Agreement with the maintainer-reviewed reference labels |
+| Brand-voice calibration | κ = 0.414, below the 0.6 bar | This judge remains a known limitation |
+
+These are synthetic evaluation results, not a production reliability claim.
+Reference labels were reviewed by the maintainer, not independently labeled.
+Some calibration categories have few failure examples. See
+[methods, provenance, and limitations](docs/evaluation.md) and the
+[committed metrics](evals/metrics.json) before interpreting the numbers.
+
+## Product decisions worth inspecting
+
+- **Keep permission outside the model.** The agent generates work; a deterministic
+  controller owns tier transitions and routing. [Decision](docs/adr/0002-controller-outside-the-agent.md)
+- **Require enough evidence to promote.** A short perfect streak does not clear the
+  statistical gate. [Decision](docs/adr/0004-wilson-interval-for-promotion.md)
+- **Separate unacceptable errors from quality preferences.** Critical failures block
+  action; advisory scores do not. [Decision](docs/adr/0005-critical-vs-weighted-dimensions.md)
+- **Keep learning after the action.** Simulated outcome failures can expose blind
+  spots in the pre-send evaluation. [Decision](docs/adr/0009-post-send-outcomes-as-autonomy-signal.md)
+- **Measure the evaluator separately from the generator.** A composer that corrects
+  a flawed brief must not distort judge-recall measurement.
+  [Decision](docs/adr/0011-separating-composer-faithfulness-from-judge-recall.md)
+
+For the cost and risk assumptions behind the product, read [economics](docs/economics.md).
+For unresolved limitations and proposed experiments, read [open questions](docs/open-questions.md).
 
 ## How it works
 
@@ -133,7 +136,7 @@ Campaign brief ─► agents/ (orchestrator-workers)         ─► RunEvaluatio
 
 ## The operator console
 
-`make ui` opens a dense, four-view console (FastAPI + vanilla JS, no build step):
+`make ui` opens a six-view console (FastAPI + vanilla JS, no build step):
 
 1. **Autonomy dashboard** — tier per campaign type, Wilson lower bound vs the
    threshold needed, runs to promotion, probation/cooldown — and *why* each type
@@ -144,6 +147,9 @@ Campaign brief ─► agents/ (orchestrator-workers)         ─► RunEvaluatio
    and the controller decision with its reasons.
 4. **Trust ledger** — the chronological audit of every tier change with the
    evidence that caused it.
+
+5. **Outcomes** — simulated deliverability outcomes and evaluation blind spots.
+6. **Security** — recorded security events for inspection.
 
 ## Key design decisions (ADRs)
 
@@ -173,13 +179,9 @@ docs/          architecture, autonomy-model, evaluation, open-questions, adr/
 
 ## Notes
 
-- **Keyless reviewing is deliberate.** `make eval`/`make gate` run a deterministic
-  decision-routing eval over all 75 golden cases — the controller reproduces every
-  authored decision and lane (75/75) with no API key, which validates the routing
-  and `constraint_block` logic (ADR 0008). Measuring whether the *judges* reproduce
-  the authored verdicts, and the Cohen's-κ calibration, require recording real judge
-  responses (`make fixtures`) and are the live-key steps 11–13; see
-  [docs/evaluation.md](docs/evaluation.md).
+- **Keyless reviewing is deliberate.** Controller routing uses authored verdicts;
+  judge replay uses committed model responses. `make judge-gate` needs no API key.
+  Recording fresh responses with `make fixtures` does. See [evaluation](docs/evaluation.md).
 - **Scope** (SPEC §15): no auth, no real database (JSONL + SQLite only), no
   deployment, no Docker, no real email sending, no additional model providers.
 - License: [MIT](LICENSE).
