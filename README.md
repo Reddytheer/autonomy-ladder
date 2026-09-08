@@ -13,6 +13,11 @@ expensive.
 
 [Explore the design decisions](docs/adr/) · [Read the evaluation](docs/evaluation.md) · [Understand the economics](docs/economics.md)
 
+![Autonomy dashboard showing campaign tiers, Wilson evidence, and reasons promotion is withheld](docs/images/operator-console.png)
+
+*The running operator console with synthetic demo data: current permissions, evidence
+needed for promotion, and a reason for each decision.*
+
 ## See the decision in one minute
 
 The same campaign can require human approval at one tier and qualify for autonomous
