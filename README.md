@@ -182,6 +182,44 @@ evals/         goldens, adversarial, calibration, fixtures, baseline.json
 docs/          architecture, autonomy-model, evaluation, open-questions, adr/
 ```
 
+## Research and design references
+
+I treat these sources as foundations for specific decisions, rather than evidence
+that this implementation is production-safe. The contribution here is the product
+and control design: translating measured performance into bounded permissions,
+review workflows, and a recovery path. Thresholds and risk assumptions remain
+project choices, documented in the design records.
+
+### Statistical foundations
+
+- **Edwin B. Wilson (1927), [Probable Inference, the Law of Succession, and Statistical Inference](https://doi.org/10.1080/01621459.1927.10502953).**
+  The statistical foundation for the Wilson score interval used in promotion.
+  Applying its lower bound to an autonomy gate is this project's design choice;
+  the paper does not prescribe agent thresholds. See [ADR 0004](docs/adr/0004-wilson-interval-for-promotion.md).
+- **Jacob Cohen (1960), [A Coefficient of Agreement for Nominal Scales](https://doi.org/10.1177/001316446002000104).**
+  The foundation for Cohen's kappa, used to report judge agreement against the
+  maintainer-reviewed reference labels. Agreement is not proof of production
+  accuracy or independent labeling. See [evaluation methods and limitations](docs/evaluation.md).
+
+### Security principles and agent architecture
+
+- **Jerome H. Saltzer and Michael D. Schroeder (1975), [The Protection of Information in Computer Systems](https://doi.org/10.1109/PROC.1975.9939).**
+  The classic formulation of complete mediation and least privilege provides
+  context for keeping authorization outside the model. See [ADR 0002](docs/adr/0002-controller-outside-the-agent.md).
+- **OWASP, [LLM06:2025 Excessive Agency](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/).**
+  Security guidance explicitly referenced in the controller design. Its emphasis
+  on downstream authorization, limited permissions, and bounded functionality
+  maps to the controller and hard constraints. This is guidance, not a research
+  paper or a claim of OWASP certification.
+- **Anthropic (2024), [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents).**
+  Engineering guidance describing the orchestrator-workers, parallelization, and
+  evaluator-optimizer patterns used in the agent pipeline. The bounded revision
+  loop and worker responsibilities are documented in [ADR 0001](docs/adr/0001-orchestrator-workers-over-single-prompt.md).
+
+Separate model calls provide a useful context boundary, but they do not establish
+statistically independent errors. That is why the repository reports calibration
+results and known evaluator weaknesses alongside its architectural choices.
+
 ## Notes
 
 - **Keyless reviewing is deliberate.** Controller routing uses authored verdicts;
