@@ -53,7 +53,7 @@ make setup
 make ui
 ```
 
-Open **http://localhost:8000**. The app seeds synthetic demo state so you can inspect
+Open the app. The app seeds synthetic demo state so you can inspect
 permissions, review queued campaigns, follow run evidence, and trace tier changes.
 The console is a local reference application; demo state is not production evidence.
 
