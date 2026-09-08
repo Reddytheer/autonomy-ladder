@@ -1,7 +1,7 @@
 # autonomy-ladder
 
 A framework that lets an AI agent **earn the right to act without human approval**,
-per task type, based on measured performance — and lose it automatically when
+per task type, based on measured performance, and lose it automatically when
 performance degrades.
 
 The reference implementation is a marketing-campaign agent for a fictional
@@ -47,7 +47,7 @@ These are implemented behaviors, with [promotion tests](tests/test_promotion.py)
 See the [full autonomy model](docs/autonomy-model.md) for eligibility, constraints,
 and recovery requirements.
 
-## Try the operator console — no API key
+## Try the operator console without an API key
 
 Requires Python ≥ 3.11 and [uv](https://docs.astral.sh/uv/).
 
@@ -116,7 +116,7 @@ Two halves, kept deliberately apart (see [docs/architecture.md](docs/architectur
 ```
 Campaign brief ─► agents/ (orchestrator-workers)         ─► RunEvaluation
                   Segment Analyst [Haiku], Copy Composer [Sonnet],
-                  Catalog Lookup (tool); then independent checks —
+                  Catalog Lookup (tool); then independent checks:
                   Claim Verifier [Haiku] + Brand Sentinel [Sonnet];
                   evaluator-optimizer revision loop (max 2)
                                     │
@@ -128,14 +128,14 @@ Campaign brief ─► agents/ (orchestrator-workers)         ─► RunEvaluatio
                           AUTO-SEND │ REVIEW QUEUE (batch │ judgment)
 ```
 
-- **Measurement** — two-stage evaluation (deterministic checks, then one LLM judge
+- **Measurement**: two-stage evaluation (deterministic checks, then one LLM judge
   per dimension) with Cohen's-κ calibration against human labels.
   [docs/evaluation.md](docs/evaluation.md)
-- **Graduation** — promotion on the **lower bound of the Wilson score interval**,
+- **Graduation**: promotion on the **lower bound of the Wilson score interval**,
   not a raw streak: 10/10 does not promote, 48/50 does. Demotion + probation +
   cooldown close the loop on pre-send critical failures and post-send
   deliverability breaches. [docs/autonomy-model.md](docs/autonomy-model.md)
-- **Enforcement** — the controller is deterministic code *outside* the agent. No
+- **Enforcement**: the controller is deterministic code *outside* the agent. No
   LLM output can set, argue, or hallucinate its way into a higher tier (P1). Tier
   state lives only in an append-only, replayable ledger.
 
@@ -143,18 +143,18 @@ Campaign brief ─► agents/ (orchestrator-workers)         ─► RunEvaluatio
 
 `make ui` opens a six-view console (FastAPI + vanilla JS, no build step):
 
-1. **Autonomy dashboard** — tier per campaign type, Wilson lower bound vs the
-   threshold needed, runs to promotion, probation/cooldown — and *why* each type
+1. **Autonomy dashboard**: tier per campaign type, Wilson lower bound vs the
+   threshold needed, runs to promotion, probation/cooldown, and *why* each type
    is where it is.
-2. **Review queue** — two lanes (batch approve vs risk-sorted judgment), SLA
+2. **Review queue**: two lanes (batch approve vs risk-sorted judgment), SLA
    escalation, expiry.
-3. **Run detail** — the full trace of one campaign: dimension scores + evidence
+3. **Run detail**: the full trace of one campaign: dimension scores + evidence
    and the controller decision with its reasons.
-4. **Trust ledger** — the chronological audit of every tier change with the
+4. **Trust ledger**: the chronological audit of every tier change with the
    evidence that caused it.
 
-5. **Outcomes** — simulated deliverability outcomes and evaluation blind spots.
-6. **Security** — recorded security events for inspection.
+5. **Outcomes**: simulated deliverability outcomes and evaluation blind spots.
+6. **Security**: recorded security events for inspection.
 
 ## Key design decisions (ADRs)
 
